@@ -30,7 +30,9 @@ const router = createBrowserRouter([
                   { path: 'leaderboard', element: <Leaderboard /> },
     ],
   },
-])
+], {
+  basename: '/gumball-run'
+})
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
