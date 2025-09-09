@@ -40,11 +40,30 @@ export default function TeamSetup() {
       }
       if (roomData?.state?.gameStarted !== undefined) {
         setGameStarted(roomData.state.gameStarted)
+        
+        // If game started and this device didn't start it, navigate to tutorial
+        if (roomData.state.gameStarted && !hasStartedGame) {
+          console.log('Game started by another device, navigating to tutorial', {
+            gameStarted: roomData.state.gameStarted,
+            hasStartedGame,
+            roomId,
+            playerTeam: selectedTeam === 'Guestimators' ? 'team1' : 'team2'
+          })
+          navigate('/tutorial', { 
+            state: { 
+              roomId,
+              team1Players, 
+              team2Players,
+              playerTeam: selectedTeam === 'Guestimators' ? 'team1' : 'team2',
+              playerId
+            } 
+          })
+        }
       }
     })
 
     return () => unsubscribe()
-  }, [roomId])
+  }, [roomId, hasStartedGame, navigate, team1Players, team2Players, selectedTeam, playerId])
 
   const handleKeyPress = async (team, e) => {
     if (e.key === 'Enter') {
@@ -112,7 +131,7 @@ export default function TeamSetup() {
 
   return (
     <div className="h-screen bg-[#8eebff] flex items-center justify-center p-4 overflow-hidden">
-      <div className="flex gap-8 max-w-6xl w-full">
+      <div className="flex gap-8 justify-center">
         {/* Team 1 Panel - Guestimators */}
         <div className="flex flex-col items-center">
           <GamePanel>
@@ -140,28 +159,26 @@ export default function TeamSetup() {
             </div>
           </GamePanel>
 
-          {/* Input field for Team 1 - only show if user selected this team and no players yet */}
-          {userTeam === 1 && team1Players.length === 0 && (
-            <div 
-              className="bg-white border-4 border-black p-4 mt-4"
-              style={{
-                borderRadius: '24px',
-                boxShadow: '4px 4px 0px 0px #000000',
-                height: '154px',
-                width: '567px'
-              }}
-            >
-              <input
-                type="text"
-                placeholder="What's your name?"
-                value={team1Input}
-                onChange={e => setTeam1Input(e.target.value)}
-                onKeyPress={e => handleKeyPress(1, e)}
-                className="w-full h-full text-center text-2xl font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent"
-                style={{ fontFamily: 'Lexend Exa, sans-serif' }}
-              />
-            </div>
-          )}
+          {/* Input field for Team 1 - always show to maintain layout */}
+          <div 
+            className={`bg-white border-4 border-black p-4 mt-4 ${userTeam === 1 && team1Players.length === 0 ? 'block' : 'invisible'}`}
+            style={{
+              borderRadius: '16px',
+              boxShadow: '4px 4px 0px 0px #000000',
+              height: '80px',
+              width: '400px'
+            }}
+          >
+            <input
+              type="text"
+              placeholder="What's your name?"
+              value={team1Input}
+              onChange={e => setTeam1Input(e.target.value)}
+              onKeyPress={e => handleKeyPress(1, e)}
+              className="w-full h-full text-center text-xl font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent"
+              style={{ fontFamily: 'Lexend Exa, sans-serif' }}
+            />
+          </div>
         </div>
 
         {/* Team 2 Panel - Quote warriors */}
@@ -191,28 +208,26 @@ export default function TeamSetup() {
             </div>
           </GamePanel>
 
-          {/* Input field for Team 2 - only show if user selected this team and no players yet */}
-          {userTeam === 2 && team2Players.length === 0 && (
-            <div 
-              className="bg-white border-4 border-black p-4 mt-4"
-              style={{
-                borderRadius: '24px',
-                boxShadow: '4px 4px 0px 0px #000000',
-                height: '154px',
-                width: '567px'
-              }}
-            >
-              <input
-                type="text"
-                placeholder="What's your name?"
-                value={team2Input}
-                onChange={e => setTeam2Input(e.target.value)}
-                onKeyPress={e => handleKeyPress(2, e)}
-                className="w-full h-full text-center text-2xl font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent"
-                style={{ fontFamily: 'Lexend Exa, sans-serif' }}
-              />
-            </div>
-          )}
+          {/* Input field for Team 2 - always show to maintain layout */}
+          <div 
+            className={`bg-white border-4 border-black p-4 mt-4 ${userTeam === 2 && team2Players.length === 0 ? 'block' : 'invisible'}`}
+            style={{
+              borderRadius: '16px',
+              boxShadow: '4px 4px 0px 0px #000000',
+              height: '80px',
+              width: '400px'
+            }}
+          >
+            <input
+              type="text"
+              placeholder="What's your name?"
+              value={team2Input}
+              onChange={e => setTeam2Input(e.target.value)}
+              onKeyPress={e => handleKeyPress(2, e)}
+              className="w-full h-full text-center text-xl font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent"
+              style={{ fontFamily: 'Lexend Exa, sans-serif' }}
+            />
+          </div>
         </div>
       </div>
 

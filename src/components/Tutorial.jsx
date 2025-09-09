@@ -16,7 +16,13 @@ export default function Tutorial() {
     if (!roomId) return
 
     const unsubscribe = subscribeToRoom(roomId, (roomData) => {
+      console.log('Tutorial: Room data received', {
+        gameStarted: roomData?.state?.gameStarted,
+        roomId,
+        playerTeam
+      })
       if (roomData?.state?.gameStarted) {
+        console.log('Tutorial: Game started, navigating to team-competition')
         setGameStarted(true)
         // Navigate immediately when game starts
         handleStartGame()
