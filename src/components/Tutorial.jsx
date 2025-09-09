@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { subscribeToRoom } from '../lib/room.js'
+import GumballImage from './GumballImage.jsx'
 
 export default function Tutorial() {
   const location = useLocation()
@@ -21,21 +22,18 @@ export default function Tutorial() {
         roomId,
         playerTeam
       })
+      // Don't navigate immediately - let the timer handle it
       if (roomData?.state?.gameStarted) {
-        console.log('Tutorial: Game started, navigating to team-competition')
+        console.log('Tutorial: Game started, but showing tutorial first')
         setGameStarted(true)
-        // Navigate immediately when game starts
-        handleStartGame()
       }
     })
 
     return () => unsubscribe()
   }, [roomId])
 
-  // Auto-start timer (fallback)
+  // Auto-start timer
   useEffect(() => {
-    if (gameStarted) return // Don't start timer if game already started
-
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -47,7 +45,7 @@ export default function Tutorial() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [gameStarted])
+  }, [])
 
   const handleStartGame = () => {
     navigate('/team-competition', { 
@@ -83,7 +81,7 @@ export default function Tutorial() {
             
             {/* Main area */}
             <div 
-              className="bg-[#ffff00] border-4 border-black p-4 mb-4"
+              className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden"
               style={{
                 borderRadius: '32px',
                 boxShadow: '4px 4px 0px 0px #000000',
@@ -91,9 +89,13 @@ export default function Tutorial() {
                 width: '400px'
               }}
             >
-              {/* Tutorial image */}
-              <div className="w-full h-48 mx-auto mb-4 bg-gray-300 rounded-lg flex items-center justify-center">
-                <span className="text-gray-600 text-sm">Tutorial Image</span>
+              {/* Gumball Image for Guestimators */}
+              <div className="absolute inset-0">
+                <GumballImage
+                  count={75}
+                  width={400}
+                  height={300}
+                />
               </div>
             </div>
             
@@ -142,10 +144,10 @@ export default function Tutorial() {
               className="h-[40px] mb-2 bg-gray-200 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors"
               onClick={handleStartGame}
             >
-              <span className="text-black font-light text-lg tracking-widest" style={{
+              <span className="text-black font-bold text-lg tracking-widest" style={{
                 fontFamily: 'Lexend Exa, sans-serif',
                 fontSize: '18px',
-                fontWeight: '200',
+                fontWeight: '700',
                 lineHeight: '25px',
                 letterSpacing: '3.6px'
               }}>
@@ -155,7 +157,7 @@ export default function Tutorial() {
             
             {/* Main area with example */}
             <div 
-              className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative"
+              className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden"
               style={{
                 borderRadius: '32px',
                 boxShadow: '4px 4px 0px 0px #000000',
@@ -163,13 +165,17 @@ export default function Tutorial() {
                 width: '400px'
               }}
             >
-              {/* Example image */}
-              <div className="w-full h-48 mx-auto mb-4 bg-gray-300 rounded-lg flex items-center justify-center">
-                <span className="text-gray-600 text-sm">Example Gumball</span>
+              {/* Gumball Image for Quote Warriors */}
+              <div className="absolute inset-0">
+                <GumballImage
+                  count={120}
+                  width={400}
+                  height={300}
+                />
               </div>
               
               {/* Example guess tags */}
-              <div className="absolute bottom-4 right-4">
+              <div className="absolute bottom-4 right-4 z-10">
                 <div 
                   className="bg-[#ffff00] border-2 border-black mb-1"
                   style={{

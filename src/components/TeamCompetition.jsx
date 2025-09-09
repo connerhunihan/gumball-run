@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import GumballMachine from './GumballMachine'
 import StarScore from './StarScore.jsx'
 import EstimateComponent from './EstimateComponent.jsx'
-import PouringParticleSimulationWrapper from './PouringParticleSimulation.jsx'
+import GumballImage from './GumballImage.jsx'
 import { subscribeToRoom, subscribeToScores, submitGuess, isGameActive, getRemainingTime } from '../lib/room.js'
 
 export default function TeamCompetition() {
@@ -19,8 +19,8 @@ export default function TeamCompetition() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [lastGuessResult, setLastGuessResult] = useState(null)
   const [showGuessResult, setShowGuessResult] = useState(false)
-  const [particleCount, setParticleCount] = useState(0)
-  const [isPouring, setIsPouring] = useState(false)
+  const [gumballCount, setGumballCount] = useState(50)
+  const [imageKey, setImageKey] = useState(0)
 
   // Subscribe to room updates
   useEffect(() => {
@@ -29,10 +29,10 @@ export default function TeamCompetition() {
     const unsubscribe = subscribeToRoom(roomId, (data) => {
       setRoomData(data)
       
-      // Update particle count when machine changes
-      if (data?.state?.[`${playerTeam}Machine`]?.count) {
-        setParticleCount(data.state[`${playerTeam}Machine`].count)
-        setIsPouring(true) // Trigger pouring animation
+      // Update gumball count when machine changes
+      const machine = data?.state?.[`${playerTeam}Machine`] || data?.state?.currentMachine
+      if (machine?.count) {
+        setGumballCount(machine.count)
       }
       
       // Check if game is over
@@ -55,9 +55,6 @@ export default function TeamCompetition() {
   }, [roomId, navigate, team1Players, team2Players, playerTeam])
 
   // Handle guess submission (for both teams)
-  const handlePourComplete = () => {
-    setIsPouring(false)
-  }
 
   const handleSubmitGuess = async (number, confidence = 'Medium') => {
     if (number.trim() && !isSubmitting) {
@@ -68,6 +65,9 @@ export default function TeamCompetition() {
         setLastGuessResult(result)
         setShowGuessResult(true)
         setCurrentGuess('')
+        
+        // Refresh gumball image after guess submission
+        setImageKey(prev => prev + 1)
         
         // Hide result after 2 seconds
         setTimeout(() => {
@@ -113,9 +113,10 @@ export default function TeamCompetition() {
               {/* Timer - right aligned per Figma */}
               <div className="h-[40px] mb-2">
                 <div className="float-right bg-transparent rounded-lg flex items-center justify-center">
-                  <span className="text-black font-extralight tracking-[0.22em]" style={{
+                  <span className="text-black font-bold tracking-[0.22em]" style={{
                     fontFamily: 'Lexend Exa, sans-serif',
                     fontSize: '18px',
+                    fontWeight: '700',
                     lineHeight: '25px'
                   }}>
                     {String(Math.floor(remainingTime/60)).padStart(1,'0')}:{String(remainingTime%60).padStart(2,'0')}
@@ -133,15 +134,13 @@ export default function TeamCompetition() {
                   width: '400px'
                 }}
               >
-                {/* Pouring particle simulation background */}
+                {/* 2D Gumball Image */}
                 <div className="absolute inset-0">
-                  <PouringParticleSimulationWrapper
-                    particleCount={particleCount}
-                    colors={['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#a55eea', '#26de81']}
-                    sizeRange={[0.08, 0.25]}
-                    containerSize={8}
-                    className="w-full h-full"
-                    onPourComplete={handlePourComplete}
+                  <GumballImage
+                    key={imageKey}
+                    count={gumballCount}
+                    width={400}
+                    height={300}
                   />
                 </div>
                 
@@ -153,7 +152,7 @@ export default function TeamCompetition() {
                       onSubmitGuess={handleSubmitGuess}
                       isSubmitting={isSubmitting}
                       actualCount={currentMachine?.count}
-                      particleCount={particleCount}
+                      particleCount={gumballCount}
                     />
                   )}
                 </div>
@@ -181,7 +180,11 @@ export default function TeamCompetition() {
                   }}
                   disabled={isSubmitting}
                   className="w-full h-full text-center text-lg font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent disabled:opacity-50"
-                  style={{ fontFamily: 'Lexend Exa, sans-serif' }}
+                  style={{ 
+                    fontFamily: 'Lexend Exa, sans-serif',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'textfield'
+                  }}
                   min={1}
                 />
               </div>

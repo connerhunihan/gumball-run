@@ -16,22 +16,25 @@ export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualC
   // Use particle count if available, otherwise use actualCount
   const currentCount = particleCount || actualCount
 
-  // Calculate confidence intervals based on actual count
+  // Calculate confidence intervals based on actual count with more variation
   const getConfidenceInterval = (actual, level) => {
     if (!actual) return null
     
+    // Add some randomness to make guesses vary more between rounds
+    const randomFactor = 0.9 + (Math.random() * 0.2) // Random between 0.9 and 1.1
+    
     switch (level) {
       case 'Low':
-        // Low confidence: below 90% of actual
-        return Math.round(actual * 0.85)
+        // Low confidence: 70-85% of actual with variation
+        return Math.round(actual * (0.7 + Math.random() * 0.15) * randomFactor)
       case 'Medium':
-        // Medium confidence: 90-95% of actual
-        return Math.round(actual * 0.925)
+        // Medium confidence: 85-95% of actual with variation
+        return Math.round(actual * (0.85 + Math.random() * 0.1) * randomFactor)
       case 'High':
-        // High confidence: 95% of actual
-        return Math.round(actual * 0.95)
+        // High confidence: 95-105% of actual with variation
+        return Math.round(actual * (0.95 + Math.random() * 0.1) * randomFactor)
       default:
-        return actual
+        return Math.round(actual * randomFactor)
     }
   }
 
@@ -56,11 +59,30 @@ export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualC
     }
   }
 
+  // Get confidence color based on level
+  const getConfidenceColor = (level) => {
+    switch (level) {
+      case 'Low':
+        return 'bg-red-500'
+      case 'Medium':
+        return 'bg-yellow-400'
+      case 'High':
+        return 'bg-green-500'
+      default:
+        return 'bg-yellow-400'
+    }
+  }
+
+  // Get text color based on confidence level
+  const getTextColor = (level) => {
+    return level === 'Low' ? 'text-white' : 'text-black'
+  }
+
   return (
-    <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+    <div className="absolute bottom-4 right-4 flex flex-col items-center gap-2">
       {/* Confidence tag */}
       <div 
-        className="bg-[#ffff00] border-2 border-black flex items-center justify-center select-none"
+        className={`${getConfidenceColor(confidence)} border-2 border-black flex items-center justify-center select-none`}
         style={{
           borderRadius: '4px',
           width: '211px',
@@ -68,7 +90,7 @@ export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualC
         }}
       >
         <span 
-          className="text-black font-normal text-center"
+          className={`${getTextColor(confidence)} font-normal text-center`}
           style={{ 
             fontFamily: 'Lexend Exa, sans-serif',
             fontSize: '32px',
@@ -90,14 +112,8 @@ export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualC
           height: '61px'
         }}
       >
-        <input
-          type="number"
-          value={number}
-          onChange={(e) => setNumber(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="?"
-          disabled={isSubmitting}
-          className="w-full h-full text-center text-black border-none outline-none bg-transparent disabled:opacity-50"
+        <div
+          className="w-full h-full text-center text-black flex items-center justify-center"
           style={{ 
             fontFamily: 'Lexend Exa, sans-serif',
             fontSize: '32px',
@@ -105,8 +121,9 @@ export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualC
             letterSpacing: '-0.96px',
             lineHeight: '44.8px'
           }}
-          min={1}
-        />
+        >
+          {number || '?'}
+        </div>
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
 function loadLeaders() {
   try {
@@ -13,6 +14,9 @@ function saveLeaders(items) {
 }
 
 export default function Leaderboard() {
+  const location = useLocation()
+  const { team1Players, team2Players, scores } = location.state || {}
+  
   const [leaders, setLeaders] = useState(() => loadLeaders())
   const [name, setName] = useState('')
   const [playerType, setPlayerType] = useState('Human')
@@ -22,6 +26,42 @@ export default function Leaderboard() {
   useEffect(() => {
     saveLeaders(leaders)
   }, [leaders])
+
+  // Add current teams to leaderboard if they have scores
+  useEffect(() => {
+    if (scores && (scores.team1 > 0 || scores.team2 > 0)) {
+      const newLeaders = []
+      
+      if (scores.team1 > 0) {
+        newLeaders.push({
+          id: crypto.randomUUID(),
+          name: 'Guestimators',
+          playerType: 'Team',
+          region: 'Game',
+          score: scores.team1,
+          at: Date.now()
+        })
+      }
+      
+      if (scores.team2 > 0) {
+        newLeaders.push({
+          id: crypto.randomUUID(),
+          name: 'Quote Warriors',
+          playerType: 'Team',
+          region: 'Game',
+          score: scores.team2,
+          at: Date.now()
+        })
+      }
+      
+      if (newLeaders.length > 0) {
+        setLeaders(prev => {
+          const combined = [...prev, ...newLeaders]
+          return combined.sort((a,b) => b.score - a.score).slice(0, 50)
+        })
+      }
+    }
+  }, [scores])
 
   const addLeader = () => {
     const s = Number(score)
@@ -34,93 +74,132 @@ export default function Leaderboard() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <section className="lg:col-span-2">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h2 className="font-semibold mb-4">Leaderboard</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="text-slate-400">
-                <tr>
-                  <th className="text-left px-3 py-2">Rank</th>
-                  <th className="text-left px-3 py-2">Name</th>
-                  <th className="text-left px-3 py-2">Player Type</th>
-                  <th className="text-left px-3 py-2">Region</th>
-                  <th className="text-left px-3 py-2">Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaders.map((l, i) => (
-                  <tr key={l.id} className="odd:bg-slate-800/30">
-                    <td className="px-3 py-2">{i + 1}</td>
-                    <td className="px-3 py-2">{l.name}</td>
-                    <td className="px-3 py-2">{l.playerType}</td>
-                    <td className="px-3 py-2">{l.region}</td>
-                    <td className="px-3 py-2 font-mono">{l.score}</td>
-                  </tr>
-                ))}
-                {leaders.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="px-3 py-6 text-center text-slate-400">No entries yet</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+    <div className="min-h-screen bg-[#8eebff] p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Title */}
+        <h1 className="text-black font-black text-5xl mb-8 text-center" style={{
+          fontFamily: 'Lexend Exa, sans-serif',
+          letterSpacing: '-4.48px',
+          lineHeight: '89.6px'
+        }}>
+          HIGH SCORES
+        </h1>
 
-      <aside>
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-3">
-          <h3 className="font-semibold">Submit Winner</h3>
-          <div>
-            <label className="text-xs text-slate-400">Team / Name</label>
-            <input
-              className="mt-1 w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-pink-500"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Team Alpha"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400">Player Type</label>
-            <select
-              className="mt-1 w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-pink-500"
-              value={playerType}
-              onChange={e => setPlayerType(e.target.value)}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <section className="lg:col-span-2">
+            <div 
+              className="bg-white border-4 border-black p-6"
+              style={{
+                borderRadius: '32px',
+                boxShadow: '4px 4px 0px 0px #000000'
+              }}
             >
-              <option>Human</option>
-              <option>Assisted</option>
-              <option>AI</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-slate-400">Region (tag)</label>
-            <input
-              className="mt-1 w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-pink-500"
-              value={region}
-              onChange={e => setRegion(e.target.value)}
-              placeholder="e.g., NA-East"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400">Score</label>
-            <input
-              type="number"
-              className="mt-1 w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 outline-none focus:border-pink-500"
-              value={score}
-              onChange={e => setScore(e.target.value)}
-              min={1}
-            />
-          </div>
-          <button
-            className="w-full rounded-md bg-pink-500 text-white px-3 py-2 transition hover:bg-pink-400 active:translate-y-px"
-            onClick={addLeader}
-          >
-            Add to Leaderboard
-          </button>
+              <h2 className="font-black text-2xl mb-6 text-black" style={{
+                fontFamily: 'Lexend Exa, sans-serif'
+              }}>
+                Leaderboard
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-black">
+                      <th className="text-left px-3 py-3 font-bold text-black">Rank</th>
+                      <th className="text-left px-3 py-3 font-bold text-black">Name</th>
+                      <th className="text-left px-3 py-3 font-bold text-black">Type</th>
+                      <th className="text-left px-3 py-3 font-bold text-black">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaders.map((l, i) => (
+                      <tr key={l.id} className="border-b border-gray-300">
+                        <td className="px-3 py-3 font-bold text-black">{i + 1}</td>
+                        <td className="px-3 py-3 text-black">{l.name}</td>
+                        <td className="px-3 py-3 text-black">{l.playerType}</td>
+                        <td className="px-3 py-3 font-bold text-black">{l.score}</td>
+                      </tr>
+                    ))}
+                    {leaders.length === 0 && (
+                      <tr>
+                        <td colSpan="4" className="px-3 py-6 text-center text-gray-500">No entries yet</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <aside>
+            <div 
+              className="bg-[#ffff00] border-4 border-black p-6 space-y-4"
+              style={{
+                borderRadius: '32px',
+                boxShadow: '4px 4px 0px 0px #000000'
+              }}
+            >
+              <h3 className="font-black text-xl text-black" style={{
+                fontFamily: 'Lexend Exa, sans-serif'
+              }}>
+                Submit Winner
+              </h3>
+              <div>
+                <label className="text-sm font-bold text-black">Team / Name</label>
+                <input
+                  className="mt-1 w-full bg-white border-2 border-black px-3 py-2 outline-none"
+                  style={{ borderRadius: '8px' }}
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Team Alpha"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-black">Player Type</label>
+                <select
+                  className="mt-1 w-full bg-white border-2 border-black px-3 py-2 outline-none"
+                  style={{ borderRadius: '8px' }}
+                  value={playerType}
+                  onChange={e => setPlayerType(e.target.value)}
+                >
+                  <option>Human</option>
+                  <option>Assisted</option>
+                  <option>AI</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-bold text-black">Region</label>
+                <input
+                  className="mt-1 w-full bg-white border-2 border-black px-3 py-2 outline-none"
+                  style={{ borderRadius: '8px' }}
+                  value={region}
+                  onChange={e => setRegion(e.target.value)}
+                  placeholder="e.g., NA-East"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-black">Score</label>
+                <input
+                  type="number"
+                  className="mt-1 w-full bg-white border-2 border-black px-3 py-2 outline-none"
+                  style={{ borderRadius: '8px' }}
+                  value={score}
+                  onChange={e => setScore(e.target.value)}
+                  min={1}
+                />
+              </div>
+              <button
+                className="w-full bg-black text-white px-4 py-3 font-bold transition-transform hover:scale-105"
+                style={{
+                  borderRadius: '16px',
+                  fontFamily: 'Lexend Exa, sans-serif'
+                }}
+                onClick={addLeader}
+              >
+                Add to Leaderboard
+              </button>
+            </div>
+          </aside>
         </div>
-      </aside>
+      </div>
     </div>
   )
 }
