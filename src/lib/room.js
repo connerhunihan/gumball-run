@@ -143,4 +143,3 @@ export const getRemainingTime = (roomData) => {
   const remaining = Math.max(0, Math.floor((roomData.gameEndTime - Date.now()) / 1000))
   return remaining
 }
-

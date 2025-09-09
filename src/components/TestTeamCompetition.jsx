@@ -1,28 +1,65 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import GumballMachine from './GumballMachine'
 import ScoreCounter from './ScoreCounter.jsx'
-import { subscribeToRoom, subscribeToScores, submitGuess, isGameActive, getRemainingTime } from '../lib/room.js'
+import { subscribeToRoom, subscribeToScores, submitGuess, isGameActive, getRemainingTime, createRoom, joinTeam, generateRoomId } from '../lib/room.js'
 
-export default function TeamCompetition() {
+export default function TestTeamCompetition() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { roomId, team1Players, team2Players, playerTeam, playerId } = location.state || {}
   
-  // Debug logging
-  console.log('TeamCompetition state:', { roomId, team1Players, team2Players, playerTeam, playerId })
+  // Simulate Quote warriors team
+  const [roomId, setRoomId] = useState(null)
+  const team1Players = ['Alice']
+  const team2Players = ['Bob']
+  const playerTeam = 'team2' // Quote warriors
+  const [playerId, setPlayerId] = useState(null)
   
   const [roomData, setRoomData] = useState(null)
   const [currentGuess, setCurrentGuess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [lastGuessResult, setLastGuessResult] = useState(null)
   const [showGuessResult, setShowGuessResult] = useState(false)
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Create room and join team on component mount
+  useEffect(() => {
+    const setupRoom = async () => {
+      try {
+        setIsCreatingRoom(true)
+        setError(null)
+        console.log('Starting room creation...')
+        
+        const newRoomId = generateRoomId()
+        console.log('Generated room ID:', newRoomId)
+        
+        await createRoom(newRoomId)
+        console.log('Room created successfully')
+        setRoomId(newRoomId)
+        
+        // Join team2 (Quote warriors)
+        console.log('Joining team2...')
+        const newPlayerId = await joinTeam(newRoomId, 'team2', 'Test Player')
+        console.log('Joined team2 with playerId:', newPlayerId)
+        setPlayerId(newPlayerId)
+        setIsCreatingRoom(false)
+      } catch (error) {
+        console.error('Error setting up room:', error)
+        setError(error.message)
+        setIsCreatingRoom(false)
+      }
+    }
+    
+    setupRoom()
+  }, [])
 
   // Subscribe to room updates
   useEffect(() => {
     if (!roomId) return
 
+    console.log('Subscribing to room:', roomId)
     const unsubscribe = subscribeToRoom(roomId, (data) => {
+      console.log('Room data received:', data)
       setRoomData(data)
       
       // Check if game is over
@@ -41,8 +78,11 @@ export default function TeamCompetition() {
       }
     })
 
-    return () => unsubscribe()
-  }, [roomId, navigate, team1Players, team2Players])
+    return () => {
+      console.log('Unsubscribing from room:', roomId)
+      unsubscribe()
+    }
+  }, [roomId]) // Only depend on roomId
 
   // Handle guess submission (only for Quote warriors - team2)
   const handleSubmitGuess = async (e) => {
@@ -71,10 +111,22 @@ export default function TeamCompetition() {
     return (
       <div className="h-screen bg-[#8eebff] flex items-center justify-center">
         <div className="text-black text-2xl" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-          Loading game...
+          {isCreatingRoom ? 'Creating room...' : 'Loading game...'}
           <br />
           <div className="text-sm mt-4">
-            Debug: playerTeam = "{playerTeam}", roomId = "{roomId}"
+            Debug: playerTeam = "{playerTeam}", roomId = "{roomId || 'Creating...'}"
+            <br />
+            {isCreatingRoom ? 'Setting up room and joining team...' : 'Waiting for room data...'}
+            <br />
+            This should show the estimate input for Quote warriors (team2)
+            {error && (
+              <>
+                <br />
+                <div className="text-red-600 mt-2">
+                  Error: {error}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

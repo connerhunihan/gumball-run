@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import GamePanel from './GamePanel.jsx'
-import { createRoom, joinTeam, subscribeToRoom } from '../lib/room.js'
+import { createRoom, joinTeam, subscribeToRoom, generateRoomId } from '../lib/room.js'
 
 export default function TeamSetup() {
   const navigate = useNavigate()
   const location = useLocation()
   const { roomId: existingRoomId, selectedTeam } = location.state || {}
+  
+  // Determine which team the user selected
+  const userTeam = selectedTeam === 'Guestimators' ? 1 : 2
   
   const [roomId, setRoomId] = useState(existingRoomId)
   const [team1Players, setTeam1Players] = useState([])
@@ -44,7 +47,8 @@ export default function TeamSetup() {
           // Create room if it doesn't exist
           if (!currentRoomId) {
             setIsCreatingRoom(true)
-            currentRoomId = await createRoom()
+            const newRoomId = generateRoomId()
+            currentRoomId = await createRoom(newRoomId)
             setRoomId(currentRoomId)
             setIsCreatingRoom(false)
           }
@@ -68,7 +72,7 @@ export default function TeamSetup() {
     }
   }
 
-  const showStartButton = team1Players.length > 0 && team2Players.length > 0
+  const showStartButton = (userTeam === 1 && team1Players.length > 0) || (userTeam === 2 && team2Players.length > 0)
 
   const handleStart = () => {
     navigate('/tutorial', { 
@@ -84,107 +88,108 @@ export default function TeamSetup() {
 
   return (
     <div className="h-screen bg-[#8eebff] flex items-center justify-center p-4 overflow-hidden">
-      <div className="flex gap-8 max-w-5xl w-full">
+      <div className="flex gap-8 max-w-6xl w-full">
         {/* Team 1 Panel - Guestimators */}
-        <GamePanel>
-          {/* Gumball image */}
-          <div className="w-full h-48 mx-auto mb-4 bg-gray-300 rounded-lg flex items-center justify-center">
-            <span className="text-gray-600 text-sm">Gumball Image</span>
-          </div>
-          
-          {/* Team name and player names */}
-          <div className="text-center">
-            <h2 className="text-black font-normal text-xl mb-2" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-              Guestimators
-            </h2>
+        <div className="flex flex-col items-center">
+          <GamePanel>
+            {/* Gumball image */}
+            <div className="w-full h-48 mx-auto mb-4 bg-gray-300 rounded-lg flex items-center justify-center">
+              <span className="text-gray-600 text-sm">Gumball Image</span>
+            </div>
             
-            {/* Show player names if any */}
-            {team1Players.length > 0 && (
-              <div className="space-y-1">
-                {team1Players.map((name, index) => (
-                  <div key={index} className="text-black font-normal text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-                    {name}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </GamePanel>
+            {/* Team name and player names */}
+            <div className="text-center">
+              <h2 className="text-black font-normal text-xl mb-2" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+                Guestimators
+              </h2>
+              
+              {/* Show player names if any */}
+              {team1Players.length > 0 && (
+                <div className="space-y-1">
+                  {team1Players.map((name, index) => (
+                    <div key={index} className="text-black font-normal text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+                      {name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </GamePanel>
+
+          {/* Input field for Team 1 - only show if user selected this team and no players yet */}
+          {userTeam === 1 && team1Players.length === 0 && (
+            <div 
+              className="bg-white border-4 border-black p-4 mt-4"
+              style={{
+                borderRadius: '24px',
+                boxShadow: '4px 4px 0px 0px #000000',
+                height: '154px',
+                width: '567px'
+              }}
+            >
+              <input
+                type="text"
+                placeholder="What's your name?"
+                value={team1Input}
+                onChange={e => setTeam1Input(e.target.value)}
+                onKeyPress={e => handleKeyPress(1, e)}
+                className="w-full h-full text-center text-2xl font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent"
+                style={{ fontFamily: 'Lexend Exa, sans-serif' }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Team 2 Panel - Quote warriors */}
-        <GamePanel>
-          {/* Gumball image */}
-          <div className="w-full h-48 mx-auto mb-4 bg-gray-300 rounded-lg flex items-center justify-center">
-            <span className="text-gray-600 text-sm">Gumball Image</span>
-          </div>
-          
-          {/* Team name and player names */}
-          <div className="text-center">
-            <h2 className="text-black font-normal text-xl mb-2" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-              Quote warriors
-            </h2>
+        <div className="flex flex-col items-center">
+          <GamePanel>
+            {/* Gumball image */}
+            <div className="w-full h-48 mx-auto mb-4 bg-gray-300 rounded-lg flex items-center justify-center">
+              <span className="text-gray-600 text-sm">Gumball Image</span>
+            </div>
             
-            {/* Show player names if any */}
-            {team2Players.length > 0 && (
-              <div className="space-y-1">
-                {team2Players.map((name, index) => (
-                  <div key={index} className="text-black font-normal text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-                    {name}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </GamePanel>
-      </div>
+            {/* Team name and player names */}
+            <div className="text-center">
+              <h2 className="text-black font-normal text-xl mb-2" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+                Quote warriors
+              </h2>
+              
+              {/* Show player names if any */}
+              {team2Players.length > 0 && (
+                <div className="space-y-1">
+                  {team2Players.map((name, index) => (
+                    <div key={index} className="text-black font-normal text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+                      {name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </GamePanel>
 
-      {/* Input fields - positioned below panels */}
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex gap-8">
-        {/* Input field for Team 1 - only show if no players yet */}
-        {team1Players.length === 0 && (
-          <div 
-            className="bg-white border-4 border-black p-4"
-            style={{
-              borderRadius: '16px',
-              boxShadow: '4px 4px 0px 0px #000000',
-              height: '80px',
-              width: '350px'
-            }}
-          >
-            <input
-              type="text"
-              placeholder="What's your name?"
-              value={team1Input}
-              onChange={e => setTeam1Input(e.target.value)}
-              onKeyPress={e => handleKeyPress(1, e)}
-              className="w-full h-full text-center text-lg font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent"
-              style={{ fontFamily: 'Lexend Exa, sans-serif' }}
-            />
-          </div>
-        )}
-
-        {/* Input field for Team 2 - only show if no players yet */}
-        {team2Players.length === 0 && (
-          <div 
-            className="bg-white border-4 border-black p-4"
-            style={{
-              borderRadius: '16px',
-              boxShadow: '4px 4px 0px 0px #000000',
-              height: '80px',
-              width: '350px'
-            }}
-          >
-            <input
-              type="text"
-              placeholder="What's your name?"
-              value={team2Input}
-              onChange={e => setTeam2Input(e.target.value)}
-              onKeyPress={e => handleKeyPress(2, e)}
-              className="w-full h-full text-center text-lg font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent"
-              style={{ fontFamily: 'Lexend Exa, sans-serif' }}
-            />
-          </div>
-        )}
+          {/* Input field for Team 2 - only show if user selected this team and no players yet */}
+          {userTeam === 2 && team2Players.length === 0 && (
+            <div 
+              className="bg-white border-4 border-black p-4 mt-4"
+              style={{
+                borderRadius: '24px',
+                boxShadow: '4px 4px 0px 0px #000000',
+                height: '154px',
+                width: '567px'
+              }}
+            >
+              <input
+                type="text"
+                placeholder="What's your name?"
+                value={team2Input}
+                onChange={e => setTeam2Input(e.target.value)}
+                onKeyPress={e => handleKeyPress(2, e)}
+                className="w-full h-full text-center text-2xl font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent"
+                style={{ fontFamily: 'Lexend Exa, sans-serif' }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Start button - show in the middle when both teams have players */}
