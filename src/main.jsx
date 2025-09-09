@@ -29,7 +29,7 @@ const router = createBrowserRouter([
     ],
   },
 ], {
-  basename: '/gumball-run'
+  basename: import.meta.env.PROD ? '/gumball-run' : '/'
 })
 
 createRoot(document.getElementById('root')).render(
