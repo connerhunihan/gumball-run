@@ -139,10 +139,9 @@ export default function Tutorial() {
         {/* Right panel - Example */}
         <div className="flex-1 flex flex-col items-center" style={{ width: '400px' }}>
           <div className="text-center" style={{ width: '400px' }}>
-            {/* Timer with countdown - clickable to skip */}
+            {/* Timer with countdown */}
             <div 
-              className="h-[40px] mb-2 bg-gray-200 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors"
-              onClick={handleStartGame}
+              className="h-[40px] mb-2 bg-gray-200 rounded-lg flex items-center justify-center"
             >
               <span className="text-black font-bold text-lg tracking-widest" style={{
                 fontFamily: 'Lexend Exa, sans-serif',
@@ -151,7 +150,7 @@ export default function Tutorial() {
                 lineHeight: '25px',
                 letterSpacing: '3.6px'
               }}>
-                STARTS IN {timeLeft} (click to skip)
+                STARTS IN {timeLeft}
               </span>
             </div>
             
