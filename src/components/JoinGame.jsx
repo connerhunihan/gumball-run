@@ -93,10 +93,10 @@ export default function JoinGame() {
   }
 
   const copyRoomUrl = async () => {
-    // Use the current URL structure to build the room URL
-    const currentPath = window.location.pathname
-    const basePath = currentPath.replace(/\/join.*$/, '') // Remove /join and everything after
-    const roomUrl = `${window.location.origin}${basePath}/join/${roomId}`
+    // Build the room URL using the current URL structure
+    const currentUrl = window.location.href
+    const baseUrl = currentUrl.split('/join/')[0] // Get everything before /join/
+    const roomUrl = `${baseUrl}/join/${roomId}`
     try {
       await navigator.clipboard.writeText(roomUrl)
       setShowCopySuccess(true)
