@@ -7,7 +7,6 @@ import {
 } from 'react-router-dom'
 import App from './routes/App.jsx'
 import Game from './routes/Game.jsx'
-import Leaderboard from './components/Leaderboard.jsx'
 import StartScreen from './components/StartScreen.jsx'
 import JoinGame from './components/JoinGame.jsx'
 import TeamSetup from './components/TeamSetup.jsx'
@@ -27,7 +26,6 @@ const router = createBrowserRouter([
                   { path: 'team-competition', element: <TeamCompetition /> },
                   { path: 'game', element: <Game /> },
                   { path: 'final-score', element: <FinalScore /> },
-                  { path: 'leaderboard', element: <Leaderboard /> },
     ],
   },
 ], {
