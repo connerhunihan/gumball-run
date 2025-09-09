@@ -2,10 +2,7 @@ import {
   ref, 
   set, 
   get, 
-  push, 
-  onValue, 
-  off,
-  serverTimestamp 
+  onValue
 } from 'firebase/database'
 import { database } from './firebase.js'
 import { generateGumballs, scoreForGuess } from './gumballs.js'
@@ -27,7 +24,8 @@ export const createRoom = async (roomId) => {
     state: {
       currentMachine: generateGumballs(),
       isActive: true,
-      lastGuessTime: null
+      lastGuessTime: null,
+      gameStarted: false
     },
     teams: {
       team1: {
@@ -40,7 +38,8 @@ export const createRoom = async (roomId) => {
         players: {},
         score: 0
       }
-    }
+    },
+    totalJoined: 0 // Track total number of users who have joined
   }
   
   await set(roomRef, roomData)
@@ -52,16 +51,26 @@ export const joinTeam = async (roomId, teamId, playerName) => {
   const playerId = `${teamId}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
   const playerRef = ref(database, `rooms/${roomId}/teams/${teamId}/players/${playerId}`)
   
+  // Get current room data to increment totalJoined
+  const roomRef = ref(database, `rooms/${roomId}`)
+  const roomSnapshot = await get(roomRef)
+  const roomData = roomSnapshot.val()
+  
   await set(playerRef, {
     name: playerName,
     joinedAt: Date.now()
   })
   
+  // Increment totalJoined counter
+  const newTotalJoined = (roomData?.totalJoined || 0) + 1
+  const totalJoinedRef = ref(database, `rooms/${roomId}/totalJoined`)
+  await set(totalJoinedRef, newTotalJoined)
+  
   return playerId
 }
 
-// Submit a guess (only for team2 - Quote warriors)
-export const submitGuess = async (roomId, playerId, guess) => {
+// Submit a guess for any team
+export const submitGuess = async (roomId, playerId, guess, teamId) => {
   const roomRef = ref(database, `rooms/${roomId}`)
   const roomSnapshot = await get(roomRef)
   const roomData = roomSnapshot.val()
@@ -73,15 +82,17 @@ export const submitGuess = async (roomId, playerId, guess) => {
   const currentMachine = roomData.state.currentMachine
   const score = scoreForGuess(parseInt(guess), currentMachine.count)
   
-  // Update team2 score
-  const newScore = roomData.teams.team2.score + score
-  const team2ScoreRef = ref(database, `rooms/${roomId}/teams/team2/score`)
-  await set(team2ScoreRef, newScore)
+  // Determine which team to update based on playerId or teamId
+  const targetTeam = teamId || (playerId.startsWith('team1_') ? 'team1' : 'team2')
+  const newScore = roomData.teams[targetTeam].score + score
+  const teamScoreRef = ref(database, `rooms/${roomId}/teams/${targetTeam}/score`)
+  await set(teamScoreRef, newScore)
   
   // Record the guess
   const guessRef = ref(database, `rooms/${roomId}/guesses/${Date.now()}`)
   await set(guessRef, {
     playerId,
+    teamId: targetTeam,
     guess: parseInt(guess),
     actualCount: currentMachine.count,
     score,
@@ -97,7 +108,7 @@ export const submitGuess = async (roomId, playerId, guess) => {
     lastGuessTime: Date.now()
   })
   
-  return { score, newScore, actualCount: currentMachine.count }
+  return { score, newScore, actualCount: currentMachine.count, teamId: targetTeam }
 }
 
 // Listen to room state changes
@@ -142,4 +153,17 @@ export const getRemainingTime = (roomData) => {
   if (!roomData || !roomData.gameEndTime) return 0
   const remaining = Math.max(0, Math.floor((roomData.gameEndTime - Date.now()) / 1000))
   return remaining
+}
+
+// Start the game
+export const startGame = async (roomId) => {
+  const stateRef = ref(database, `rooms/${roomId}/state`)
+  await set(stateRef, {
+    currentMachine: generateGumballs(),
+    isActive: true,
+    lastGuessTime: null,
+    gameStarted: true
+  })
+  
+  return true
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import GamePanel from './GamePanel.jsx'
-import { createRoom, joinTeam, subscribeToRoom, generateRoomId } from '../lib/room.js'
+import { createRoom, joinTeam, subscribeToRoom, generateRoomId, startGame } from '../lib/room.js'
 
 export default function TeamSetup() {
   const navigate = useNavigate()
@@ -18,6 +18,9 @@ export default function TeamSetup() {
   const [team2Input, setTeam2Input] = useState('')
   const [isCreatingRoom, setIsCreatingRoom] = useState(false)
   const [playerId, setPlayerId] = useState(null)
+  const [totalJoined, setTotalJoined] = useState(0)
+  const [gameStarted, setGameStarted] = useState(false)
+  const [hasStartedGame, setHasStartedGame] = useState(false)
 
   // Subscribe to room updates
   useEffect(() => {
@@ -29,6 +32,14 @@ export default function TeamSetup() {
         const team2PlayerList = Object.values(roomData.teams.team2?.players || {})
         setTeam1Players(team1PlayerList.map(p => p.name))
         setTeam2Players(team2PlayerList.map(p => p.name))
+      }
+      
+      // Update total joined count and game started state
+      if (roomData?.totalJoined !== undefined) {
+        setTotalJoined(roomData.totalJoined)
+      }
+      if (roomData?.state?.gameStarted !== undefined) {
+        setGameStarted(roomData.state.gameStarted)
       }
     })
 
@@ -74,16 +85,28 @@ export default function TeamSetup() {
 
   const showStartButton = (userTeam === 1 && team1Players.length > 0) || (userTeam === 2 && team2Players.length > 0)
 
-  const handleStart = () => {
-    navigate('/tutorial', { 
-      state: { 
-        roomId,
-        team1Players, 
-        team2Players,
-        playerTeam: selectedTeam === 'Guestimators' ? 'team1' : 'team2',
-        playerId
-      } 
-    })
+  const handleStart = async () => {
+    if (!hasStartedGame) {
+      setHasStartedGame(true)
+      try {
+        await startGame(roomId)
+        // Wait a moment for the state to update, then navigate
+        setTimeout(() => {
+          navigate('/tutorial', { 
+            state: { 
+              roomId,
+              team1Players, 
+              team2Players,
+              playerTeam: selectedTeam === 'Guestimators' ? 'team1' : 'team2',
+              playerId
+            } 
+          })
+        }, 500)
+      } catch (error) {
+        console.error('Error starting game:', error)
+        setHasStartedGame(false)
+      }
+    }
   }
 
   return (
@@ -197,20 +220,28 @@ export default function TeamSetup() {
         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2">
           <button
             onClick={handleStart}
-            className="bg-[#00f22a] border-4 border-black text-black font-black transition-all duration-200 hover:scale-105"
+            disabled={hasStartedGame || gameStarted}
+            className={`border-4 border-black text-black font-black transition-all duration-200 ${
+              hasStartedGame || gameStarted 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-[#00f22a] hover:scale-105'
+            }`}
             style={{ 
               width: '400px',
               height: '100px',
               fontFamily: 'Lexend Exa, sans-serif',
-              fontSize: '48px',
+              fontSize: hasStartedGame || gameStarted ? '24px' : '48px',
               fontWeight: '900',
               letterSpacing: '-3px',
-              lineHeight: '64px',
+              lineHeight: hasStartedGame || gameStarted ? '32px' : '64px',
               boxShadow: '4px 4px 0px 0px #000000',
               borderRadius: '16px'
             }}
           >
-            Start
+            {hasStartedGame || gameStarted 
+              ? `Waiting for others, ${totalJoined} of ${totalJoined} have joined`
+              : 'Start'
+            }
           </button>
         </div>
       )}

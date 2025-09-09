@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { subscribeToRoom } from '../lib/room.js'
 
 export default function Tutorial() {
   const location = useLocation()
@@ -8,9 +9,27 @@ export default function Tutorial() {
   
   const [guess, setGuess] = useState('')
   const [timeLeft, setTimeLeft] = useState(15)
+  const [gameStarted, setGameStarted] = useState(false)
 
-  // Auto-start timer
+  // Subscribe to room updates to check if game has started
   useEffect(() => {
+    if (!roomId) return
+
+    const unsubscribe = subscribeToRoom(roomId, (roomData) => {
+      if (roomData?.state?.gameStarted) {
+        setGameStarted(true)
+        // Navigate immediately when game starts
+        handleStartGame()
+      }
+    })
+
+    return () => unsubscribe()
+  }, [roomId])
+
+  // Auto-start timer (fallback)
+  useEffect(() => {
+    if (gameStarted) return // Don't start timer if game already started
+
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -22,7 +41,7 @@ export default function Tutorial() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [])
+  }, [gameStarted])
 
   const handleStartGame = () => {
     navigate('/team-competition', { 

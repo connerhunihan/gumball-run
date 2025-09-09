@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import GumballMachine from './GumballMachine'
-import ScoreCounter from './ScoreCounter.jsx'
+import StarScore from './StarScore.jsx'
+import EstimateComponent from './EstimateComponent.jsx'
 import { subscribeToRoom, subscribeToScores, submitGuess, isGameActive, getRemainingTime, createRoom, joinTeam, generateRoomId } from '../lib/room.js'
 
 export default function TestTeamCompetition() {
@@ -84,16 +85,15 @@ export default function TestTeamCompetition() {
     }
   }, [roomId]) // Only depend on roomId
 
-  // Handle guess submission (only for Quote warriors - team2)
-  const handleSubmitGuess = async (e) => {
-    if (e.key === 'Enter' && currentGuess.trim() && !isSubmitting && playerTeam === 'team2') {
+  // Handle guess submission (for both teams)
+  const handleSubmitGuess = async (number, confidence) => {
+    if (number.trim() && !isSubmitting) {
       setIsSubmitting(true)
       
       try {
-        const result = await submitGuess(roomId, playerId, currentGuess)
+        const result = await submitGuess(roomId, playerId, number, playerTeam)
         setLastGuessResult(result)
         setShowGuessResult(true)
-        setCurrentGuess('')
         
         // Hide result after 2 seconds
         setTimeout(() => {
@@ -106,6 +106,8 @@ export default function TestTeamCompetition() {
       }
     }
   }
+
+  console.log('Render check:', { roomData: !!roomData, playerTeam, isCreatingRoom, error })
 
   if (!roomData) {
     return (
@@ -141,10 +143,8 @@ export default function TestTeamCompetition() {
   return (
     <div className="h-screen bg-[#8eebff] flex items-center justify-center p-4 overflow-hidden">
       <div className="flex gap-8 max-w-6xl w-full">
-        {/* Left side - Score counter for Team 1 (Guestimators) */}
-        <div className="flex flex-col items-center">
-          <ScoreCounter score={team1Score} teamName="Guestimators" />
-        </div>
+        {/* Left side - Star score for Team 1 (Guestimators) */}
+        <StarScore score={team1Score} teamName="Guestimators" isLeft={true} />
 
         {/* Center - Game panel */}
         <div className="flex-1 flex flex-col items-center">
@@ -165,7 +165,7 @@ export default function TestTeamCompetition() {
               
               {/* Main area */}
               <div 
-                className="bg-[#ffff00] border-4 border-black p-4 mb-4"
+                className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative"
                 style={{
                   borderRadius: '32px',
                   boxShadow: '4px 4px 0px 0px #000000',
@@ -189,32 +189,44 @@ export default function TestTeamCompetition() {
                     {playerTeam === 'team1' ? team1Players.join(', ') : team2Players.join(', ')}
                   </p>
                 </div>
+
+                {/* Estimate component - only show for Quote warriors (team2) */}
+                {console.log('Checking estimate component:', { playerTeam, shouldShow: playerTeam === 'team2' })}
+                {playerTeam === 'team2' && (
+                  <EstimateComponent 
+                    onSubmitGuess={handleSubmitGuess}
+                    isSubmitting={isSubmitting}
+                    actualCount={roomData?.state?.currentMachine?.count}
+                  />
+                )}
               </div>
               
-              {/* Guess input - only show for Quote warriors (team2) */}
-              {playerTeam === 'team2' && (
-                <div 
-                  className="bg-white border-4 border-black p-4"
-                  style={{
-                    borderRadius: '16px',
-                    boxShadow: '4px 4px 0px 0px #000000',
-                    height: '80px',
-                    width: '400px'
+              {/* Guess input - show for both teams */}
+              <div 
+                className="bg-white border-4 border-black p-4"
+                style={{
+                  borderRadius: '16px',
+                  boxShadow: '4px 4px 0px 0px #000000',
+                  height: '80px',
+                  width: '400px'
+                }}
+              >
+                <input
+                  type="number"
+                  placeholder="enter a number"
+                  value={currentGuess}
+                  onChange={e => setCurrentGuess(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && currentGuess.trim() && !isSubmitting) {
+                      handleSubmitGuess(currentGuess, 'Medium')
+                    }
                   }}
-                >
-                  <input
-                    type="number"
-                    placeholder="enter a number"
-                    value={currentGuess}
-                    onChange={e => setCurrentGuess(e.target.value)}
-                    onKeyPress={handleSubmitGuess}
-                    disabled={isSubmitting}
-                    className="w-full h-full text-center text-lg font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent disabled:opacity-50"
-                    style={{ fontFamily: 'Lexend Exa, sans-serif' }}
-                    min={1}
-                  />
-                </div>
-              )}
+                  disabled={isSubmitting}
+                  className="w-full h-full text-center text-lg font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent disabled:opacity-50"
+                  style={{ fontFamily: 'Lexend Exa, sans-serif' }}
+                  min={1}
+                />
+              </div>
             </div>
           </div>
 
@@ -238,10 +250,8 @@ export default function TestTeamCompetition() {
           )}
         </div>
 
-        {/* Right side - Score counter for Team 2 (Quote warriors) */}
-        <div className="flex flex-col items-center">
-          <ScoreCounter score={team2Score} teamName="Quote warriors" />
-        </div>
+        {/* Right side - Star score for Team 2 (Quote warriors) */}
+        <StarScore score={team2Score} teamName="Quote warriors" isLeft={false} />
       </div>
     </div>
   )
