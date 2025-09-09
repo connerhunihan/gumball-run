@@ -107,7 +107,7 @@ export default function TeamCompetition() {
         <StarScore score={team1Score} teamName="Guestimators" isLeft={true} />
 
         {/* Center - Game panel */}
-        <div className="flex-1 flex flex-col items-center">
+        <div className="flex-1 flex flex-col items-center relative">
           <div className="w-[400px]">
             <div className="text-center relative">
               {/* Timer - right aligned per Figma */}
@@ -191,9 +191,9 @@ export default function TeamCompetition() {
             </div>
           </div>
 
-          {/* Guess result display */}
+          {/* Guess result display - positioned absolutely to not affect layout */}
           {showGuessResult && lastGuessResult && (
-            <div className="mt-4 text-center">
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-4 text-center z-10">
               <div 
                 className="bg-white border-4 border-black p-4"
                 style={{ 

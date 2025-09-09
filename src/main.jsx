@@ -15,6 +15,7 @@ import TeamCompetition from './components/TeamCompetition.jsx'
 import TestTeamCompetition from './components/TestTeamCompetition.jsx'
 import DebugPage from './components/DebugPage.jsx'
 import FinalScore from './components/FinalScore.jsx'
+import Leaderboard from './routes/Leaderboard.jsx'
 
 const router = createBrowserRouter([
   {
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
                   { path: 'debug', element: <DebugPage /> },
                   { path: 'game', element: <Game /> },
                   { path: 'final-score', element: <FinalScore /> },
+                  { path: 'leaderboard', element: <Leaderboard /> },
     ],
   },
 ], {
