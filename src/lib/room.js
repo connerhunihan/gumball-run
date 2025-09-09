@@ -22,11 +22,10 @@ export const createRoom = async (roomId) => {
     createdAt: now,
     gameEndTime: gameEndTime,
     state: {
-      team1Machine: generateGumballs(),
-      team2Machine: generateGumballs(),
       isActive: true,
       lastGuessTime: null,
-      gameStarted: false
+      gameStarted: false,
+      currentRound: 1
     },
     teams: {
       team1: {
@@ -61,7 +60,9 @@ export const joinTeam = async (roomId, teamId, playerName) => {
   await set(playerRef, {
     name: playerName,
     joinedAt: Date.now(),
-    hasStarted: false // Track if this player has clicked start
+    hasStarted: false, // Track if this player has clicked start
+    currentMachine: generateGumballs(), // Each player gets their own machine
+    score: 0 // Individual player score
   })
   
   // Increment totalJoined counter
@@ -94,7 +95,7 @@ export const markPlayerStarted = async (roomId, playerId) => {
   return newPlayersStarted
 }
 
-// Submit a guess for any team
+// Submit a guess for a specific player
 export const submitGuess = async (roomId, playerId, guess, teamId) => {
   const roomRef = ref(database, `rooms/${roomId}`)
   const roomSnapshot = await get(roomRef)
@@ -104,37 +105,60 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
     throw new Error('Game not active')
   }
   
-  // Get the machine for the specific team
-  const teamMachine = roomData.state[`${teamId}Machine`] || roomData.state.currentMachine
-  const score = scoreForGuess(parseInt(guess), teamMachine.count)
-  
-  // Determine which team to update based on playerId or teamId
+  // Determine which team this player belongs to
   const targetTeam = teamId || (playerId.startsWith('team1_') ? 'team1' : 'team2')
-  const newScore = roomData.teams[targetTeam].score + score
+  
+  // Get the player's current machine
+  const playerRef = ref(database, `rooms/${roomId}/teams/${targetTeam}/players/${playerId}`)
+  const playerSnapshot = await get(playerRef)
+  const playerData = playerSnapshot.val()
+  
+  if (!playerData || !playerData.currentMachine) {
+    throw new Error('Player machine not found')
+  }
+  
+  const playerMachine = playerData.currentMachine
+  const score = scoreForGuess(parseInt(guess), playerMachine.count)
+  
+  // Update player's individual score
+  const newPlayerScore = (playerData.score || 0) + score
+  await set(playerRef, {
+    ...playerData,
+    score: newPlayerScore,
+    currentMachine: generateGumballs() // Generate new machine for next round
+  })
+  
+  // Update team's total score
+  const newTeamScore = roomData.teams[targetTeam].score + score
   const teamScoreRef = ref(database, `rooms/${roomId}/teams/${targetTeam}/score`)
-  await set(teamScoreRef, newScore)
+  await set(teamScoreRef, newTeamScore)
   
   // Record the guess
   const guessRef = ref(database, `rooms/${roomId}/guesses/${Date.now()}`)
   await set(guessRef, {
     playerId,
     teamId: targetTeam,
+    playerName: playerData.name,
     guess: parseInt(guess),
-    actualCount: teamMachine.count,
+    actualCount: playerMachine.count,
     score,
     timestamp: Date.now()
   })
   
-  // Generate new machine for this team and update state
-  const newMachine = generateGumballs()
+  // Update last guess time
   const stateRef = ref(database, `rooms/${roomId}/state`)
   await set(stateRef, {
     ...roomData.state,
-    [`${targetTeam}Machine`]: newMachine,
     lastGuessTime: Date.now()
   })
   
-  return { score, newScore, actualCount: teamMachine.count, teamId: targetTeam }
+  return { 
+    score, 
+    newScore: newTeamScore, 
+    actualCount: playerMachine.count, 
+    teamId: targetTeam,
+    playerName: playerData.name
+  }
 }
 
 // Listen to room state changes
@@ -199,8 +223,6 @@ export const startGame = async (roomId) => {
   
   const stateRef = ref(database, `rooms/${roomId}/state`)
   await set(stateRef, {
-    team1Machine: generateGumballs(),
-    team2Machine: generateGumballs(),
     isActive: true,
     lastGuessTime: null,
     gameStarted: true

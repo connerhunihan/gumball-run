@@ -21,6 +21,7 @@ export default function TeamCompetition() {
   const [showGuessResult, setShowGuessResult] = useState(false)
   const [gumballCount, setGumballCount] = useState(50)
   const [imageKey, setImageKey] = useState(0)
+  const [teammateNotifications, setTeammateNotifications] = useState([])
 
   // Subscribe to room updates
   useEffect(() => {
@@ -29,10 +30,41 @@ export default function TeamCompetition() {
     const unsubscribe = subscribeToRoom(roomId, (data) => {
       setRoomData(data)
       
-      // Update gumball count when machine changes
-      const machine = data?.state?.[`${playerTeam}Machine`] || data?.state?.currentMachine
-      if (machine?.count) {
-        setGumballCount(machine.count)
+      // Get this player's individual machine
+      const playerData = data?.teams?.[playerTeam]?.players?.[playerId]
+      if (playerData?.currentMachine?.count) {
+        setGumballCount(playerData.currentMachine.count)
+      }
+      
+      // Listen for new guesses from teammates
+      if (data?.guesses) {
+        const recentGuesses = Object.values(data.guesses)
+          .filter(guess => 
+            guess.teamId === playerTeam && 
+            guess.playerId !== playerId && 
+            Date.now() - guess.timestamp < 5000 // Last 5 seconds
+          )
+          .sort((a, b) => b.timestamp - a.timestamp)
+        
+        // Show notifications for recent teammate scores
+        recentGuesses.forEach(guess => {
+          const notification = {
+            id: guess.timestamp,
+            playerName: guess.playerName,
+            score: guess.score
+          }
+          setTeammateNotifications(prev => {
+            if (!prev.find(n => n.id === notification.id)) {
+              return [...prev, notification]
+            }
+            return prev
+          })
+          
+          // Remove notification after 3 seconds
+          setTimeout(() => {
+            setTeammateNotifications(prev => prev.filter(n => n.id !== notification.id))
+          }, 3000)
+        })
       }
       
       // Check if game is over
@@ -96,7 +128,6 @@ export default function TeamCompetition() {
   }
 
   const remainingTime = getRemainingTime(roomData)
-  const currentMachine = roomData.state?.[`${playerTeam}Machine`] || roomData.state?.currentMachine
   const team1Score = roomData.teams?.team1?.score || 0
   const team2Score = roomData.teams?.team2?.score || 0
 
@@ -152,7 +183,7 @@ export default function TeamCompetition() {
                       <EstimateComponent 
                         onSubmitGuess={handleSubmitGuess}
                         isSubmitting={isSubmitting}
-                        actualCount={currentMachine?.count}
+                        actualCount={gumballCount}
                         particleCount={gumballCount}
                       />
                     </div>
@@ -211,6 +242,30 @@ export default function TeamCompetition() {
               </div>
             </div>
           )}
+
+          {/* Teammate score notifications */}
+          {teammateNotifications.map((notification, index) => (
+            <div 
+              key={notification.id}
+              className="absolute top-4 left-4 z-20 animate-pulse"
+              style={{ 
+                transform: `translateY(${index * 60}px)`,
+                animationDelay: `${index * 0.1}s`
+              }}
+            >
+              <div 
+                className="bg-green-500 text-white px-3 py-2 rounded-lg border-2 border-black"
+                style={{ 
+                  fontFamily: 'Lexend Exa, sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  boxShadow: '2px 2px 0px 0px #000'
+                }}
+              >
+                {notification.playerName} +{notification.score} points!
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Right side - Star score for Team 2 (Quote warriors) */}
