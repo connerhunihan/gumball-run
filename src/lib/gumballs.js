@@ -6,12 +6,19 @@ export function generateGumballs() {
   const width = 280
   const height = 280
   const radius = 8
-  const cols = Math.floor(width / (radius * 2))
-  const rows = Math.floor(height / (radius * 2))
+  
+  // Vary the grid size significantly to create more variation in count
+  const gridVariation = randomInt(-3, 3) // -3 to +3 variation
+  const cols = Math.floor(width / (radius * 2)) + gridVariation
+  const rows = Math.floor(height / (radius * 2)) + gridVariation
+  
+  // Vary the missing probability more dramatically (10% to 40%)
+  const missingProbability = randomInt(10, 40) / 100
+  
   const balls = []
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      if (Math.random() > 0.15) {
+      if (Math.random() > missingProbability) {
         balls.push({
           x: x * radius * 2 + radius,
           y: y * radius * 2 + radius,
