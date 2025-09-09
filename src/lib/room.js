@@ -39,8 +39,10 @@ export const createRoom = async (roomId) => {
         score: 0
       }
     },
-    totalJoined: 0, // Track total number of users who have joined
-    playersStarted: 0 // Track number of players who have clicked start
+    totalJoined: 0, // Track total number of users who have joined a team
+    playersStarted: 0, // Track number of players who have clicked start
+    totalVisitors: 0, // Track total number of users who have opened the URL
+    visitors: {} // Track individual visitors and their status
   }
   
   await set(roomRef, roomData)
@@ -205,7 +207,7 @@ export const getRemainingTime = (roomData) => {
   return remaining
 }
 
-// Start the game (only if all players have started)
+// Start the game (only if all visitors have joined teams and started)
 export const startGame = async (roomId) => {
   const roomRef = ref(database, `rooms/${roomId}`)
   const roomSnapshot = await get(roomRef)
@@ -213,12 +215,26 @@ export const startGame = async (roomId) => {
   
   if (!roomData) return false
   
-  // Check if all players have started
-  const totalPlayers = roomData.totalJoined || 0
-  const playersStarted = roomData.playersStarted || 0
+  // Check if all visitors have joined teams and started
+  const visitors = Object.values(roomData.visitors || {})
+  const totalVisitors = visitors.length
   
-  if (playersStarted < totalPlayers || totalPlayers === 0) {
-    return false // Not all players have started yet
+  if (totalVisitors === 0) return false // No visitors yet
+  
+  const visitorsJoined = visitors.filter(v => v.hasJoinedTeam).length
+  const visitorsStarted = visitors.filter(v => v.hasStarted).length
+  
+  // Need ALL visitors to have joined teams and started
+  if (visitorsJoined < totalVisitors || visitorsStarted < totalVisitors) {
+    return false // Not all visitors have joined and started yet
+  }
+  
+  // Also need at least one player from each team
+  const team1Players = Object.values(roomData.teams?.team1?.players || {})
+  const team2Players = Object.values(roomData.teams?.team2?.players || {})
+  
+  if (team1Players.length === 0 || team2Players.length === 0) {
+    return false // Need at least one player from each team
   }
   
   const stateRef = ref(database, `rooms/${roomId}/state`)
@@ -229,6 +245,58 @@ export const startGame = async (roomId) => {
   })
   
   return true
+}
+
+// Register a visitor to the room (when they open the URL)
+export const registerVisitor = async (roomId, visitorId) => {
+  const visitorRef = ref(database, `rooms/${roomId}/visitors/${visitorId}`)
+  const visitorData = {
+    id: visitorId,
+    joinedAt: Date.now(),
+    hasJoinedTeam: false,
+    hasStarted: false,
+    teamId: null,
+    playerId: null
+  }
+  
+  await set(visitorRef, visitorData)
+  
+  // Increment total visitors count
+  const roomRef = ref(database, `rooms/${roomId}`)
+  const roomSnapshot = await get(roomRef)
+  const roomData = roomSnapshot.val()
+  
+  const newTotalVisitors = (roomData?.totalVisitors || 0) + 1
+  const totalVisitorsRef = ref(database, `rooms/${roomId}/totalVisitors`)
+  await set(totalVisitorsRef, newTotalVisitors)
+  
+  return visitorData
+}
+
+// Update visitor status when they join a team
+export const updateVisitorStatus = async (roomId, visitorId, teamId, playerId) => {
+  const visitorRef = ref(database, `rooms/${roomId}/visitors/${visitorId}`)
+  const visitorSnapshot = await get(visitorRef)
+  const currentData = visitorSnapshot.val() || {}
+  
+  await set(visitorRef, {
+    ...currentData,
+    hasJoinedTeam: true,
+    teamId: teamId,
+    playerId: playerId
+  })
+}
+
+// Update visitor status when they start the game
+export const markVisitorStarted = async (roomId, visitorId) => {
+  const visitorRef = ref(database, `rooms/${roomId}/visitors/${visitorId}`)
+  const visitorSnapshot = await get(visitorRef)
+  const currentData = visitorSnapshot.val() || {}
+  
+  await set(visitorRef, {
+    ...currentData,
+    hasStarted: true
+  })
 }
 
 // Check if a room exists

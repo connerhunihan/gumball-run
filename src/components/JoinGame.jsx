@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import GamePanel from './GamePanel.jsx'
-import { getOrCreateActiveRoom, roomExists } from '../lib/room.js'
+import { getOrCreateActiveRoom, roomExists, registerVisitor, subscribeToRoom } from '../lib/room.js'
 
 export default function JoinGame() {
   const navigate = useNavigate()
@@ -13,6 +13,9 @@ export default function JoinGame() {
   const [isLoading, setIsLoading] = useState(!urlRoomId && !existingRoomId)
   const [roomError, setRoomError] = useState(null)
   const [showCopySuccess, setShowCopySuccess] = useState(false)
+  const [visitorId, setVisitorId] = useState(null)
+  const [roomData, setRoomData] = useState(null)
+  const [visitors, setVisitors] = useState([])
 
   // Handle room setup based on URL or create new room
   useEffect(() => {
@@ -25,6 +28,11 @@ export default function JoinGame() {
           if (exists) {
             setRoomId(urlRoomId)
             setRoomError(null)
+            
+            // Register this visitor
+            const newVisitorId = `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+            setVisitorId(newVisitorId)
+            await registerVisitor(urlRoomId, newVisitorId)
           } else {
             setRoomError('Room not found. This room may have expired or the link is invalid.')
           }
@@ -41,6 +49,11 @@ export default function JoinGame() {
           const activeRoomId = await getOrCreateActiveRoom()
           setRoomId(activeRoomId)
           console.log('Got active room:', activeRoomId)
+          
+          // Register this visitor
+          const newVisitorId = `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+          setVisitorId(newVisitorId)
+          await registerVisitor(activeRoomId, newVisitorId)
         } catch (error) {
           console.error('Error getting active room:', error)
           setRoomError('Error setting up room. Please try again.')
@@ -53,12 +66,28 @@ export default function JoinGame() {
     setupRoom()
   }, [urlRoomId, existingRoomId])
 
+  // Subscribe to room updates for real-time visitor tracking
+  useEffect(() => {
+    if (!roomId) return
+
+    const unsubscribe = subscribeToRoom(roomId, (data) => {
+      setRoomData(data)
+      
+      // Update visitors list
+      const visitorsList = Object.values(data?.visitors || {})
+      setVisitors(visitorsList)
+    })
+
+    return () => unsubscribe()
+  }, [roomId])
+
   const handleJoinTeam = (teamName) => {
     setSelectedTeam(teamName)
     navigate('/team-setup', { 
       state: { 
         selectedTeam: teamName,
-        roomId: roomId
+        roomId: roomId,
+        visitorId: visitorId
       } 
     })
   }
@@ -132,6 +161,7 @@ export default function JoinGame() {
           📋 Copy Link
         </button>
       </div>
+
 
       {/* Copy success notification */}
       {showCopySuccess && (

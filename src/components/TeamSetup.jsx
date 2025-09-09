@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import GamePanel from './GamePanel.jsx'
-import { createRoom, joinTeam, subscribeToRoom, generateRoomId, startGame, markPlayerStarted } from '../lib/room.js'
+import { createRoom, joinTeam, subscribeToRoom, generateRoomId, startGame, markPlayerStarted, updateVisitorStatus, markVisitorStarted } from '../lib/room.js'
 
 export default function TeamSetup() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { roomId: existingRoomId, selectedTeam } = location.state || {}
+  const { roomId: existingRoomId, selectedTeam, visitorId } = location.state || {}
   
   // Determine which team the user selected
   const userTeam = selectedTeam === 'Guestimators' ? 1 : 2
@@ -91,6 +91,11 @@ export default function TeamSetup() {
           const newPlayerId = await joinTeam(currentRoomId, teamId, trimmedName)
           setPlayerId(newPlayerId)
           
+          // Update visitor status if we have a visitor ID
+          if (visitorId) {
+            await updateVisitorStatus(currentRoomId, visitorId, teamId, newPlayerId)
+          }
+          
           // Clear input
           if (team === 1) {
             setTeam1Input('')
@@ -114,7 +119,12 @@ export default function TeamSetup() {
         // Mark this player as started
         await markPlayerStarted(roomId, playerId)
         
-        // Try to start the game (will only succeed if all players have started)
+        // Update visitor status if we have a visitor ID
+        if (visitorId) {
+          await markVisitorStarted(roomId, visitorId)
+        }
+        
+        // Try to start the game (will only succeed if all visitors have joined and started)
         const gameStarted = await startGame(roomId)
         
         if (gameStarted) {
