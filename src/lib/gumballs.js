@@ -3,58 +3,49 @@ export function randomInt(min, max) {
 }
 
 export function generateGumballs() {
-  const width = 280
-  const height = 280
+  // Match the on-screen yellow box and GumballImage grid exactly
+  const width = 400
+  const height = 300
+  const gumballSize = 12
+  const spacing = 3
+  const padding = 8
 
-  // Choose a target count from distinct ranges to create large swings
-  // Ranges: dozens, hundreds, up to 800+
+  const cols = Math.floor((width - padding * 2) / (gumballSize + spacing))
+  const rows = Math.floor((height - padding * 2) / (gumballSize + spacing))
+  const maxDisplayable = cols * rows // This is what we can physically render
+
+  // Choose a target count from distinct ranges, then clamp to maxDisplayable
   const buckets = [
     { min: 20, max: 60 },     // dozens
     { min: 80, max: 150 },    // low hundreds
     { min: 200, max: 350 },   // mid
-    { min: 400, max: 600 },   // high
-    { min: 700, max: 900 }    // very high (800+ possible)
+    { min: 380, max: 450 }    // high but within render capacity
   ]
   const chosen = buckets[randomInt(0, buckets.length - 1)]
-  const targetCount = randomInt(chosen.min, chosen.max)
+  const targetCount = Math.min(randomInt(chosen.min, chosen.max), maxDisplayable)
 
-  // Compute a radius that can fit targetCount circles in the given width/height
-  // Use a square-ish grid and ensure at least radius 3 for visibility
-  const gridSize = Math.ceil(Math.sqrt(targetCount))
-  const computedRadius = Math.max(3, Math.floor(Math.min(width, height) / (gridSize * 2)))
-
-  // Derive rows/cols from computed radius
-  const cols = Math.max(1, Math.floor(width / (computedRadius * 2)))
-  const rows = Math.max(1, Math.floor(height / (computedRadius * 2)))
-
-  // Build all possible positions, then take exactly targetCount (or clamp to available)
+  // Generate exactly targetCount positions on the same grid used by GumballImage
   const allPositions = []
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      allPositions.push({
-        x: x * computedRadius * 2 + computedRadius,
-        y: y * computedRadius * 2 + computedRadius
-      })
+      const px = padding + x * (gumballSize + spacing) + gumballSize / 2
+      const py = padding + y * (gumballSize + spacing) + gumballSize / 2
+      allPositions.push({ x: px, y: py })
     }
   }
 
-  // Shuffle positions for randomness
+  // Shuffle and take first targetCount
   for (let i = allPositions.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    const tmp = allPositions[i]
+    const t = allPositions[i]
     allPositions[i] = allPositions[j]
-    allPositions[j] = tmp
+    allPositions[j] = t
   }
 
-  const finalCount = Math.min(targetCount, allPositions.length)
   const balls = []
-  for (let i = 0; i < finalCount; i++) {
+  for (let i = 0; i < targetCount; i++) {
     const p = allPositions[i]
-    balls.push({
-      x: p.x,
-      y: p.y,
-      c: `hsl(${randomInt(0, 360)} 80% 60%)`
-    })
+    balls.push({ x: p.x, y: p.y, c: `hsl(${randomInt(0, 360)} 80% 60%)` })
   }
 
   return { width, height, balls, count: balls.length }
