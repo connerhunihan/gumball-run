@@ -1,179 +1,188 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import GumballMachine from './GumballMachine'
-import { generateGumballs, scoreForGuess } from '../lib/gumballs'
+import ScoreCounter from './ScoreCounter.jsx'
+import { subscribeToRoom, subscribeToScores, submitGuess, isGameActive, getRemainingTime } from '../lib/room.js'
 
 export default function TeamCompetition() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { team1Players, team2Players, currentTeam, round, team1Score, team2Score } = location.state || {}
+  const { roomId, team1Players, team2Players, playerTeam, playerId } = location.state || {}
   
-  const [timeLeft, setTimeLeft] = useState(180) // 3 minutes
-  const [phase, setPhase] = useState('guess') // 'guess' or 'reveal'
-  const [machine, setMachine] = useState(() => generateGumballs())
+  const [roomData, setRoomData] = useState(null)
   const [currentGuess, setCurrentGuess] = useState('')
-  const [currentRound, setCurrentRound] = useState(round || 1)
-  const [teamAScore, setTeamAScore] = useState(team1Score || 0)
-  const [teamBScore, setTeamBScore] = useState(team2Score || 0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [lastGuessResult, setLastGuessResult] = useState(null)
+  const [showGuessResult, setShowGuessResult] = useState(false)
 
-  // Reset state when team changes
+  // Subscribe to room updates
   useEffect(() => {
-    setCurrentGuess('')
-    setPhase('guess')
-    setTimeLeft(180)
-    setMachine(generateGumballs())
-  }, [currentTeam])
+    if (!roomId) return
 
-  // Timer effect
-  useEffect(() => {
-    if (phase === 'guess') {
-      const interval = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            setPhase('reveal')
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
+    const unsubscribe = subscribeToRoom(roomId, (data) => {
+      setRoomData(data)
       
-      return () => clearInterval(interval)
-    }
-  }, [phase])
+      // Check if game is over
+      if (!isGameActive(data)) {
+        navigate('/final-score', { 
+          state: { 
+            roomId,
+            team1Players,
+            team2Players,
+            scores: { 
+              team1: data?.teams?.team1?.score || 0, 
+              team2: data?.teams?.team2?.score || 0 
+            } 
+          } 
+        })
+      }
+    })
 
-  const submitGuess = () => {
-    if (currentGuess.trim()) {
-      setPhase('reveal')
+    return () => unsubscribe()
+  }, [roomId, navigate, team1Players, team2Players])
+
+  // Handle guess submission (only for Quote warriors - team2)
+  const handleSubmitGuess = async (e) => {
+    if (e.key === 'Enter' && currentGuess.trim() && !isSubmitting && playerTeam === 'team2') {
+      setIsSubmitting(true)
+      
+      try {
+        const result = await submitGuess(roomId, playerId, currentGuess)
+        setLastGuessResult(result)
+        setShowGuessResult(true)
+        setCurrentGuess('')
+        
+        // Hide result after 2 seconds
+        setTimeout(() => {
+          setShowGuessResult(false)
+          setIsSubmitting(false)
+        }, 2000)
+      } catch (error) {
+        console.error('Error submitting guess:', error)
+        setIsSubmitting(false)
+      }
     }
   }
 
-  const nextRound = () => {
-    if (currentRound >= 2) {
-      // Game finished, go to final score
-      navigate('/final-score', { 
-        state: { 
-          team1Players,
-          team2Players,
-          scores: { team1: teamAScore, team2: teamBScore } 
-        } 
-      })
-    } else {
-      // Switch to other team for next round
-      const nextTeam = currentTeam === 'team1' ? 'team2' : 'team1'
-      navigate('/team-competition', { 
-        state: { 
-          team1Players,
-          team2Players,
-          currentTeam: nextTeam,
-          round: currentRound + 1,
-          team1Score: teamAScore,
-          team2Score: teamBScore
-        } 
-      })
-    }
+  if (!roomData) {
+    return (
+      <div className="h-screen bg-[#8eebff] flex items-center justify-center">
+        <div className="text-black text-2xl" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+          Loading game...
+        </div>
+      </div>
+    )
   }
 
-  const currentTeamName = currentTeam === 'team1' ? 'Guestimators' : 'Quote warriors'
-  const currentTeamPlayers = currentTeam === 'team1' ? team1Players : team2Players
+  const remainingTime = getRemainingTime(roomData)
+  const currentMachine = roomData.state?.currentMachine
+  const team1Score = roomData.teams?.team1?.score || 0
+  const team2Score = roomData.teams?.team2?.score || 0
 
   return (
-    <div className="min-h-screen bg-[#8eebff] flex items-center justify-center p-8">
-      <div className="max-w-4xl w-full">
-        {/* Timer */}
-        <div className="bg-white border-4 border-black rounded-2xl p-8 mb-8">
-          <div className="h-16 bg-gray-200 rounded-lg flex items-center justify-center mb-6">
-            <span className="text-black font-light text-2xl tracking-widest">
-              {Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}
-            </span>
-          </div>
-          
-          {/* Main area */}
-          <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 mb-6">
-            {/* Gumball machine */}
-            <div className="w-64 h-56 mx-auto mb-6 flex items-center justify-center">
-              <GumballMachine balls={machine.balls} count={machine.count} />
-            </div>
-            
-            {/* Team name */}
-            <div className="text-center">
-              <h2 className="text-black font-normal text-3xl" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-                {currentTeamName}
-              </h2>
-            </div>
-          </div>
-          
-          {/* Guess input */}
-          <div className="bg-white border-4 border-black rounded-3xl p-6">
-            <input
-              type="number"
-              placeholder="enter a number"
-              value={currentGuess}
-              onChange={e => setCurrentGuess(e.target.value)}
-              disabled={phase !== 'guess'}
-              className="w-full text-center text-3xl font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent disabled:opacity-50"
-              style={{ fontFamily: 'Lexend Exa, sans-serif' }}
-              min={1}
-            />
-          </div>
+    <div className="h-screen bg-[#8eebff] flex items-center justify-center p-4 overflow-hidden">
+      <div className="flex gap-8 max-w-6xl w-full">
+        {/* Left side - Score counter for Team 1 (Guestimators) */}
+        <div className="flex flex-col items-center">
+          <ScoreCounter score={team1Score} teamName="Guestimators" />
         </div>
 
-        {/* Action buttons */}
-        <div className="flex justify-center gap-4">
-          {phase === 'guess' && (
-            <button
-              onClick={submitGuess}
-              disabled={!currentGuess}
-              className="bg-white border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50"
-              style={{ 
-                fontFamily: 'Lexend Exa, sans-serif',
-                letterSpacing: '-0.07em'
-              }}
-            >
-              SUBMIT GUESS
-            </button>
-          )}
-          {phase === 'reveal' && (
-            <button
-              onClick={nextRound}
-              className="bg-white border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl transition-all duration-200 hover:scale-105 hover:shadow-lg"
-              style={{ 
-                fontFamily: 'Lexend Exa, sans-serif',
-                letterSpacing: '-0.07em'
-              }}
-            >
-              {currentRound >= 2 ? 'FINISH GAME' : 'NEXT ROUND'}
-            </button>
-          )}
-        </div>
-
-        {/* Reveal overlay */}
-        {phase === 'reveal' && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white border-4 border-black rounded-2xl p-8 text-center">
-              <h2 className="text-black font-black text-4xl mb-4" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-                Round {currentRound} Results
-              </h2>
-              <p className="text-black font-normal text-2xl mb-4" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-                True count: <span className="font-bold">{machine.count}</span>
-              </p>
-              <div className="bg-[#ffff00] border-2 border-black rounded-lg p-4 mb-6">
-                <div className="text-black font-normal text-xl" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-                  {currentTeamName}: {currentGuess}
+        {/* Center - Game panel */}
+        <div className="flex-1 flex flex-col items-center">
+          <div className="w-[400px]">
+            <div className="text-center relative">
+              {/* Timer - right aligned per Figma */}
+              <div className="h-[40px] mb-2">
+                <div className="float-right bg-transparent rounded-lg flex items-center justify-center">
+                  <span className="text-black font-extralight tracking-[0.22em]" style={{
+                    fontFamily: 'Lexend Exa, sans-serif',
+                    fontSize: '18px',
+                    lineHeight: '25px'
+                  }}>
+                    {String(Math.floor(remainingTime/60)).padStart(1,'0')}:{String(remainingTime%60).padStart(2,'0')}
+                  </span>
                 </div>
               </div>
-              <button
-                onClick={nextRound}
-                className="bg-white border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                style={{ 
-                  fontFamily: 'Lexend Exa, sans-serif',
-                  letterSpacing: '-0.07em'
+              
+              {/* Main area */}
+              <div 
+                className="bg-[#ffff00] border-4 border-black p-4 mb-4"
+                style={{
+                  borderRadius: '32px',
+                  boxShadow: '4px 4px 0px 0px #000000',
+                  height: '300px',
+                  width: '400px'
                 }}
               >
-                {currentRound >= 2 ? 'FINISH GAME' : 'NEXT ROUND'}
-              </button>
+                {/* Gumball machine */}
+                <div className="w-full h-48 mx-auto mb-4 flex items-center justify-center">
+                  {currentMachine && (
+                    <GumballMachine balls={currentMachine.balls} count={currentMachine.count} />
+                  )}
+                </div>
+                
+                {/* Team name */}
+                <div className="text-center">
+                  <h2 className="text-black font-normal text-xl" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+                    {playerTeam === 'team1' ? 'Guestimators' : 'Quote warriors'}
+                  </h2>
+                  <p className="text-black font-light text-sm">
+                    {playerTeam === 'team1' ? team1Players.join(', ') : team2Players.join(', ')}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Guess input - only show for Quote warriors (team2) */}
+              {playerTeam === 'team2' && (
+                <div 
+                  className="bg-white border-4 border-black p-4"
+                  style={{
+                    borderRadius: '16px',
+                    boxShadow: '4px 4px 0px 0px #000000',
+                    height: '80px',
+                    width: '400px'
+                  }}
+                >
+                  <input
+                    type="number"
+                    placeholder="enter a number"
+                    value={currentGuess}
+                    onChange={e => setCurrentGuess(e.target.value)}
+                    onKeyPress={handleSubmitGuess}
+                    disabled={isSubmitting}
+                    className="w-full h-full text-center text-lg font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent disabled:opacity-50"
+                    style={{ fontFamily: 'Lexend Exa, sans-serif' }}
+                    min={1}
+                  />
+                </div>
+              )}
             </div>
           </div>
-        )}
+
+          {/* Guess result display */}
+          {showGuessResult && lastGuessResult && (
+            <div className="mt-4 text-center">
+              <div 
+                className="bg-white border-4 border-black p-4"
+                style={{ 
+                  borderRadius: '12px', 
+                  boxShadow: '4px 4px 0px 0px #000',
+                  width: '400px'
+                }}
+              >
+                <div className="text-black" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+                  <div className="text-lg font-bold">+{lastGuessResult.score} points!</div>
+                  <div className="text-sm">Actual: {lastGuessResult.actualCount}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right side - Score counter for Team 2 (Quote warriors) */}
+        <div className="flex flex-col items-center">
+          <ScoreCounter score={team2Score} teamName="Quote warriors" />
+        </div>
       </div>
     </div>
   )
