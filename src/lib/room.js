@@ -167,3 +167,71 @@ export const startGame = async (roomId) => {
   
   return true
 }
+
+// Check if a room exists
+export const roomExists = async (roomId) => {
+  const roomRef = ref(database, `rooms/${roomId}`)
+  const roomSnapshot = await get(roomRef)
+  return roomSnapshot.exists()
+}
+
+// Clear room state (remove all players)
+export const clearRoomState = async (roomId) => {
+  const roomRef = ref(database, `rooms/${roomId}`)
+  const roomSnapshot = await get(roomRef)
+  const roomData = roomSnapshot.val()
+  
+  if (roomData) {
+    // Reset teams to empty state
+    const teamsRef = ref(database, `rooms/${roomId}/teams`)
+    await set(teamsRef, {
+      team1: {
+        name: 'Guestimators',
+        players: {},
+        score: 0
+      },
+      team2: {
+        name: 'Quote warriors', 
+        players: {},
+        score: 0
+      }
+    })
+    
+    // Reset totalJoined counter
+    const totalJoinedRef = ref(database, `rooms/${roomId}/totalJoined`)
+    await set(totalJoinedRef, 0)
+    
+    // Reset game state
+    const stateRef = ref(database, `rooms/${roomId}/state`)
+    await set(stateRef, {
+      currentMachine: generateGumballs(),
+      isActive: true,
+      lastGuessTime: null,
+      gameStarted: false
+    })
+  }
+}
+
+// Get or create the active room (only one room at a time)
+export const getOrCreateActiveRoom = async () => {
+  // First, try to find an existing active room
+  const roomsRef = ref(database, 'rooms')
+  const roomsSnapshot = await get(roomsRef)
+  const rooms = roomsSnapshot.val() || {}
+  
+  // Look for an active room (not started yet)
+  for (const [roomId, roomData] of Object.entries(rooms)) {
+    if (roomData && !roomData.state?.gameStarted && isGameActive(roomData)) {
+      console.log('Found existing active room:', roomId)
+      // Clear the room state to give fresh experience
+      await clearRoomState(roomId)
+      return roomId
+    }
+  }
+  
+  // If no active room found, create a new one
+  console.log('No active room found, creating new one')
+  const newRoomId = generateRoomId()
+  await createRoom(newRoomId)
+  return newRoomId
+}

@@ -109,6 +109,7 @@ export default function TeamSetup() {
     }
   }
 
+
   return (
     <div className="h-screen bg-[#8eebff] flex items-center justify-center p-4 overflow-hidden">
       <div className="flex gap-8 max-w-6xl w-full">

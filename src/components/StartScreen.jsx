@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 export default function StartScreen() {
   const navigate = useNavigate()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isHovered, setIsHovered] = useState(false)
 
   const handleStartGame = () => {
