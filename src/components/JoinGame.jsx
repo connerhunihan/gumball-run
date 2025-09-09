@@ -1,20 +1,41 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import GamePanel from './GamePanel.jsx'
-import { getOrCreateActiveRoom } from '../lib/room.js'
+import { getOrCreateActiveRoom, roomExists } from '../lib/room.js'
 
 export default function JoinGame() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { roomId: existingRoomId } = location.state || {}
+  const { roomId: urlRoomId } = useParams()
+  const { roomId: existingRoomId, isRoomCreator } = location.state || {}
   const [selectedTeam, setSelectedTeam] = useState(null)
-  const [roomId, setRoomId] = useState(existingRoomId)
-  const [isLoading, setIsLoading] = useState(!existingRoomId)
+  const [roomId, setRoomId] = useState(urlRoomId || existingRoomId)
+  const [isLoading, setIsLoading] = useState(!urlRoomId && !existingRoomId)
+  const [roomError, setRoomError] = useState(null)
+  const [showCopySuccess, setShowCopySuccess] = useState(false)
 
-  // Automatically get or create active room when component mounts
+  // Handle room setup based on URL or create new room
   useEffect(() => {
     const setupRoom = async () => {
-      if (!existingRoomId) {
+      if (urlRoomId) {
+        // Check if the room from URL exists
+        try {
+          setIsLoading(true)
+          const exists = await roomExists(urlRoomId)
+          if (exists) {
+            setRoomId(urlRoomId)
+            setRoomError(null)
+          } else {
+            setRoomError('Room not found. This room may have expired or the link is invalid.')
+          }
+        } catch (error) {
+          console.error('Error checking room:', error)
+          setRoomError('Error checking room. Please try again.')
+        } finally {
+          setIsLoading(false)
+        }
+      } else if (!existingRoomId) {
+        // No room ID provided, get or create active room (fallback)
         try {
           setIsLoading(true)
           const activeRoomId = await getOrCreateActiveRoom()
@@ -22,6 +43,7 @@ export default function JoinGame() {
           console.log('Got active room:', activeRoomId)
         } catch (error) {
           console.error('Error getting active room:', error)
+          setRoomError('Error setting up room. Please try again.')
         } finally {
           setIsLoading(false)
         }
@@ -29,7 +51,7 @@ export default function JoinGame() {
     }
 
     setupRoom()
-  }, [existingRoomId])
+  }, [urlRoomId, existingRoomId])
 
   const handleJoinTeam = (teamName) => {
     setSelectedTeam(teamName)
@@ -39,6 +61,26 @@ export default function JoinGame() {
         roomId: roomId
       } 
     })
+  }
+
+  const copyRoomUrl = async () => {
+    const roomUrl = `${window.location.origin}/join/${roomId}`
+    try {
+      await navigator.clipboard.writeText(roomUrl)
+      setShowCopySuccess(true)
+      setTimeout(() => setShowCopySuccess(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy URL:', error)
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = roomUrl
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      setShowCopySuccess(true)
+      setTimeout(() => setShowCopySuccess(false), 2000)
+    }
   }
 
   // Show loading state while setting up room
@@ -55,8 +97,50 @@ export default function JoinGame() {
     )
   }
 
+  // Show error state if room doesn't exist
+  if (roomError) {
+    return (
+      <div className="h-screen bg-[#8eebff] flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="text-red-600 text-xl mb-4" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+            {roomError}
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="bg-white border-4 border-black rounded-xl px-6 py-3 text-black font-bold text-lg transition-all duration-200 hover:scale-105"
+            style={{ fontFamily: 'Lexend Exa, sans-serif' }}
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-screen bg-[#8eebff] flex items-center justify-center p-4 overflow-hidden">
+      {/* Room information header */}
+      <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
+        <div className="text-black text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+          Room: <span className="font-bold">{roomId}</span>
+        </div>
+        <button
+          onClick={copyRoomUrl}
+          className="bg-white border-2 border-black rounded-lg px-4 py-2 text-black font-bold text-sm transition-all duration-200 hover:scale-105 flex items-center gap-2"
+          style={{ fontFamily: 'Lexend Exa, sans-serif' }}
+        >
+          📋 Copy Link
+        </button>
+      </div>
+
+      {/* Copy success notification */}
+      {showCopySuccess && (
+        <div className="absolute top-16 right-4 bg-green-500 text-white px-4 py-2 rounded-lg border-2 border-black z-10">
+          <span className="font-bold" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+            Link copied!
+          </span>
+        </div>
+      )}
 
       <div className="flex gap-8 justify-center">
         {/* Team 1 - Guestimators */}

@@ -1,14 +1,24 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ParticleSimulationWrapper from './ParticleSimulation.jsx'
+import { generateRoomId, createRoom } from '../lib/room.js'
 
 export default function StartScreen() {
   const navigate = useNavigate()
   const [isHovered, setIsHovered] = useState(false)
-  // isHovered is used in onMouseEnter/onMouseLeave handlers
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false)
 
-  const handleStartGame = () => {
-    navigate('/join')
+
+  const handleCreateRoom = async () => {
+    try {
+      setIsCreatingRoom(true)
+      const roomId = generateRoomId()
+      await createRoom(roomId)
+      navigate(`/join/${roomId}`)
+    } catch (error) {
+      console.error('Error creating room:', error)
+      setIsCreatingRoom(false)
+    }
   }
 
   return (
@@ -27,17 +37,18 @@ export default function StartScreen() {
       {/* Main content */}
       <div className="relative z-10 text-center">
         <button
-          onClick={handleStartGame}
+          onClick={handleCreateRoom}
+          disabled={isCreatingRoom}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          className="bg-white border-4 border-black rounded-2xl px-16 py-8 text-black font-black text-6xl transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          className="bg-white border-4 border-black rounded-2xl px-16 py-8 text-black font-black text-6xl transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ 
             fontFamily: 'Lexend Exa, sans-serif',
             letterSpacing: '-0.07em',
             lineHeight: '1.1'
           }}
         >
-          Gumball Run
+          {isCreatingRoom ? 'Creating...' : 'Gumball Run'}
         </button>
       </div>
     </div>

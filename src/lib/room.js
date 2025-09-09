@@ -280,7 +280,7 @@ export const clearRoomState = async (roomId) => {
   }
 }
 
-// Get or create the active room (only one room at a time)
+// Get or create the active room (fallback for non-URL based joining)
 export const getOrCreateActiveRoom = async () => {
   // First, try to find an existing active room
   const roomsRef = ref(database, 'rooms')
@@ -291,8 +291,6 @@ export const getOrCreateActiveRoom = async () => {
   for (const [roomId, roomData] of Object.entries(rooms)) {
     if (roomData && !roomData.state?.gameStarted && isGameActive(roomData)) {
       console.log('Found existing active room:', roomId)
-      // Clear the room state to give fresh experience
-      await clearRoomState(roomId)
       return roomId
     }
   }

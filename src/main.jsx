@@ -24,6 +24,7 @@ const router = createBrowserRouter([
     children: [
                   { index: true, element: <StartScreen /> },
                   { path: 'join', element: <JoinGame /> },
+                  { path: 'join/:roomId', element: <JoinGame /> },
                   { path: 'team-setup', element: <TeamSetup /> },
                   { path: 'tutorial', element: <Tutorial /> },
                   { path: 'team-competition', element: <TeamCompetition /> },
