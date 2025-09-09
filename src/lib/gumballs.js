@@ -5,28 +5,58 @@ export function randomInt(min, max) {
 export function generateGumballs() {
   const width = 280
   const height = 280
-  const radius = 8
-  
-  // Vary the grid size significantly to create more variation in count
-  const gridVariation = randomInt(-3, 3) // -3 to +3 variation
-  const cols = Math.floor(width / (radius * 2)) + gridVariation
-  const rows = Math.floor(height / (radius * 2)) + gridVariation
-  
-  // Vary the missing probability more dramatically (10% to 40%)
-  const missingProbability = randomInt(10, 40) / 100
-  
-  const balls = []
+
+  // Choose a target count from distinct ranges to create large swings
+  // Ranges: dozens, hundreds, up to 800+
+  const buckets = [
+    { min: 20, max: 60 },     // dozens
+    { min: 80, max: 150 },    // low hundreds
+    { min: 200, max: 350 },   // mid
+    { min: 400, max: 600 },   // high
+    { min: 700, max: 900 }    // very high (800+ possible)
+  ]
+  const chosen = buckets[randomInt(0, buckets.length - 1)]
+  const targetCount = randomInt(chosen.min, chosen.max)
+
+  // Compute a radius that can fit targetCount circles in the given width/height
+  // Use a square-ish grid and ensure at least radius 3 for visibility
+  const gridSize = Math.ceil(Math.sqrt(targetCount))
+  const computedRadius = Math.max(3, Math.floor(Math.min(width, height) / (gridSize * 2)))
+
+  // Derive rows/cols from computed radius
+  const cols = Math.max(1, Math.floor(width / (computedRadius * 2)))
+  const rows = Math.max(1, Math.floor(height / (computedRadius * 2)))
+
+  // Build all possible positions, then take exactly targetCount (or clamp to available)
+  const allPositions = []
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      if (Math.random() > missingProbability) {
-        balls.push({
-          x: x * radius * 2 + radius,
-          y: y * radius * 2 + radius,
-          c: `hsl(${randomInt(0, 360)} 80% 60%)`,
-        })
-      }
+      allPositions.push({
+        x: x * computedRadius * 2 + computedRadius,
+        y: y * computedRadius * 2 + computedRadius
+      })
     }
   }
+
+  // Shuffle positions for randomness
+  for (let i = allPositions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = allPositions[i]
+    allPositions[i] = allPositions[j]
+    allPositions[j] = tmp
+  }
+
+  const finalCount = Math.min(targetCount, allPositions.length)
+  const balls = []
+  for (let i = 0; i < finalCount; i++) {
+    const p = allPositions[i]
+    balls.push({
+      x: p.x,
+      y: p.y,
+      c: `hsl(${randomInt(0, 360)} 80% 60%)`
+    })
+  }
+
   return { width, height, balls, count: balls.length }
 }
 

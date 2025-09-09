@@ -145,15 +145,17 @@ export default function TeamCompetition() {
                 </div>
                 
                 {/* Content overlay */}
-                <div className="relative z-10 h-full flex flex-col justify-center">
+                <div className="relative z-10 h-full">
                   {/* Estimate component - only show for Quote warriors (team2) */}
                   {playerTeam === 'team2' && (
-                    <EstimateComponent 
-                      onSubmitGuess={handleSubmitGuess}
-                      isSubmitting={isSubmitting}
-                      actualCount={currentMachine?.count}
-                      particleCount={gumballCount}
-                    />
+                    <div className="absolute bottom-2 right-2">
+                      <EstimateComponent 
+                        onSubmitGuess={handleSubmitGuess}
+                        isSubmitting={isSubmitting}
+                        actualCount={currentMachine?.count}
+                        particleCount={gumballCount}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
