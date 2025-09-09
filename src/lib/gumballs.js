@@ -25,8 +25,24 @@ export function generateGumballs() {
 
 export function scoreForGuess(trueCount, guess) {
   const error = Math.abs(trueCount - guess)
-  const normalized = Math.max(1, Math.round(1000 / (1 + error)))
-  return normalized
+  const percentageError = error / trueCount
+  
+  // More balanced scoring system (reduced by factor of 10)
+  if (percentageError <= 0.05) { // Within 5%
+    return 100
+  } else if (percentageError <= 0.10) { // Within 10%
+    return 80
+  } else if (percentageError <= 0.15) { // Within 15%
+    return 60
+  } else if (percentageError <= 0.20) { // Within 20%
+    return 40
+  } else if (percentageError <= 0.30) { // Within 30%
+    return 20
+  } else if (percentageError <= 0.50) { // Within 50%
+    return 10
+  } else {
+    return Math.max(1, Math.round(10 / (1 + percentageError)))
+  }
 }
 
 

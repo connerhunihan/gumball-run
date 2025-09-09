@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import GamePanel from './GamePanel.jsx'
-import { createRoom, joinTeam, subscribeToRoom, generateRoomId, startGame } from '../lib/room.js'
+import { createRoom, joinTeam, subscribeToRoom, generateRoomId, startGame, markPlayerStarted } from '../lib/room.js'
 
 export default function TeamSetup() {
   const navigate = useNavigate()
@@ -19,8 +19,9 @@ export default function TeamSetup() {
   const [isCreatingRoom, setIsCreatingRoom] = useState(false)
   const [playerId, setPlayerId] = useState(null)
   const [totalJoined, setTotalJoined] = useState(0)
+  const [playersStarted, setPlayersStarted] = useState(0)
   const [gameStarted, setGameStarted] = useState(false)
-  const [hasStartedGame, setHasStartedGame] = useState(false)
+  const [hasPlayerStarted, setHasPlayerStarted] = useState(false)
 
   // Subscribe to room updates
   useEffect(() => {
@@ -34,18 +35,20 @@ export default function TeamSetup() {
         setTeam2Players(team2PlayerList.map(p => p.name))
       }
       
-      // Update total joined count and game started state
+      // Update total joined count, players started count, and game started state
       if (roomData?.totalJoined !== undefined) {
         setTotalJoined(roomData.totalJoined)
+      }
+      if (roomData?.playersStarted !== undefined) {
+        setPlayersStarted(roomData.playersStarted)
       }
       if (roomData?.state?.gameStarted !== undefined) {
         setGameStarted(roomData.state.gameStarted)
         
-        // If game started and this device didn't start it, navigate to tutorial
-        if (roomData.state.gameStarted && !hasStartedGame) {
-          console.log('Game started by another device, navigating to tutorial', {
+        // If game started, navigate to tutorial
+        if (roomData.state.gameStarted) {
+          console.log('Game started, navigating to tutorial', {
             gameStarted: roomData.state.gameStarted,
-            hasStartedGame,
             roomId,
             playerTeam: selectedTeam === 'Guestimators' ? 'team1' : 'team2'
           })
@@ -63,7 +66,7 @@ export default function TeamSetup() {
     })
 
     return () => unsubscribe()
-  }, [roomId, hasStartedGame, navigate, team1Players, team2Players, selectedTeam, playerId])
+  }, [roomId, navigate, team1Players, team2Players, selectedTeam, playerId])
 
   const handleKeyPress = async (team, e) => {
     if (e.key === 'Enter') {
@@ -105,25 +108,25 @@ export default function TeamSetup() {
   const showStartButton = (userTeam === 1 && team1Players.length > 0) || (userTeam === 2 && team2Players.length > 0)
 
   const handleStart = async () => {
-    if (!hasStartedGame) {
-      setHasStartedGame(true)
+    if (!hasPlayerStarted && playerId) {
+      setHasPlayerStarted(true)
       try {
-        await startGame(roomId)
-        // Wait a moment for the state to update, then navigate
-        setTimeout(() => {
-          navigate('/tutorial', { 
-            state: { 
-              roomId,
-              team1Players, 
-              team2Players,
-              playerTeam: selectedTeam === 'Guestimators' ? 'team1' : 'team2',
-              playerId
-            } 
-          })
-        }, 500)
+        // Mark this player as started
+        await markPlayerStarted(roomId, playerId)
+        
+        // Try to start the game (will only succeed if all players have started)
+        const gameStarted = await startGame(roomId)
+        
+        if (gameStarted) {
+          // All players have started, game will begin
+          console.log('All players have started, game beginning')
+        } else {
+          // Not all players have started yet, wait for others
+          console.log('Waiting for other players to start')
+        }
       } catch (error) {
-        console.error('Error starting game:', error)
-        setHasStartedGame(false)
+        console.error('Error marking player as started:', error)
+        setHasPlayerStarted(false)
       }
     }
   }
@@ -236,9 +239,9 @@ export default function TeamSetup() {
         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2">
           <button
             onClick={handleStart}
-            disabled={hasStartedGame || gameStarted}
+            disabled={hasPlayerStarted || gameStarted}
             className={`border-4 border-black text-black font-black transition-all duration-200 ${
-              hasStartedGame || gameStarted 
+              hasPlayerStarted || gameStarted 
                 ? 'bg-gray-400 cursor-not-allowed' 
                 : 'bg-[#00f22a] hover:scale-105'
             }`}
@@ -246,16 +249,16 @@ export default function TeamSetup() {
               width: '400px',
               height: '100px',
               fontFamily: 'Lexend Exa, sans-serif',
-              fontSize: hasStartedGame || gameStarted ? '24px' : '48px',
+              fontSize: hasPlayerStarted || gameStarted ? '24px' : '48px',
               fontWeight: '900',
               letterSpacing: '-3px',
-              lineHeight: hasStartedGame || gameStarted ? '32px' : '64px',
+              lineHeight: hasPlayerStarted || gameStarted ? '32px' : '64px',
               boxShadow: '4px 4px 0px 0px #000000',
               borderRadius: '16px'
             }}
           >
-            {hasStartedGame || gameStarted 
-              ? `Waiting for others, ${totalJoined} of ${totalJoined} have joined`
+            {hasPlayerStarted || gameStarted 
+              ? `Waiting for others, ${playersStarted} of ${totalJoined} have started`
               : 'Start'
             }
           </button>

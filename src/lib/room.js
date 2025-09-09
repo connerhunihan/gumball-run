@@ -22,7 +22,8 @@ export const createRoom = async (roomId) => {
     createdAt: now,
     gameEndTime: gameEndTime,
     state: {
-      currentMachine: generateGumballs(),
+      team1Machine: generateGumballs(),
+      team2Machine: generateGumballs(),
       isActive: true,
       lastGuessTime: null,
       gameStarted: false
@@ -39,7 +40,8 @@ export const createRoom = async (roomId) => {
         score: 0
       }
     },
-    totalJoined: 0 // Track total number of users who have joined
+    totalJoined: 0, // Track total number of users who have joined
+    playersStarted: 0 // Track number of players who have clicked start
   }
   
   await set(roomRef, roomData)
@@ -58,7 +60,8 @@ export const joinTeam = async (roomId, teamId, playerName) => {
   
   await set(playerRef, {
     name: playerName,
-    joinedAt: Date.now()
+    joinedAt: Date.now(),
+    hasStarted: false // Track if this player has clicked start
   })
   
   // Increment totalJoined counter
@@ -67,6 +70,28 @@ export const joinTeam = async (roomId, teamId, playerName) => {
   await set(totalJoinedRef, newTotalJoined)
   
   return playerId
+}
+
+// Mark a player as started
+export const markPlayerStarted = async (roomId, playerId) => {
+  const playerRef = ref(database, `rooms/${roomId}/teams/${playerId.startsWith('team1_') ? 'team1' : 'team2'}/players/${playerId}`)
+  
+  // Mark this player as started
+  await set(playerRef, {
+    ...(await get(playerRef)).val(),
+    hasStarted: true
+  })
+  
+  // Increment playersStarted counter
+  const roomRef = ref(database, `rooms/${roomId}`)
+  const roomSnapshot = await get(roomRef)
+  const roomData = roomSnapshot.val()
+  
+  const newPlayersStarted = (roomData?.playersStarted || 0) + 1
+  const playersStartedRef = ref(database, `rooms/${roomId}/playersStarted`)
+  await set(playersStartedRef, newPlayersStarted)
+  
+  return newPlayersStarted
 }
 
 // Submit a guess for any team
@@ -79,8 +104,9 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
     throw new Error('Game not active')
   }
   
-  const currentMachine = roomData.state.currentMachine
-  const score = scoreForGuess(parseInt(guess), currentMachine.count)
+  // Get the machine for the specific team
+  const teamMachine = roomData.state[`${teamId}Machine`] || roomData.state.currentMachine
+  const score = scoreForGuess(parseInt(guess), teamMachine.count)
   
   // Determine which team to update based on playerId or teamId
   const targetTeam = teamId || (playerId.startsWith('team1_') ? 'team1' : 'team2')
@@ -94,21 +120,21 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
     playerId,
     teamId: targetTeam,
     guess: parseInt(guess),
-    actualCount: currentMachine.count,
+    actualCount: teamMachine.count,
     score,
     timestamp: Date.now()
   })
   
-  // Generate new machine and update state
+  // Generate new machine for this team and update state
   const newMachine = generateGumballs()
   const stateRef = ref(database, `rooms/${roomId}/state`)
   await set(stateRef, {
     ...roomData.state,
-    currentMachine: newMachine,
+    [`${targetTeam}Machine`]: newMachine,
     lastGuessTime: Date.now()
   })
   
-  return { score, newScore, actualCount: currentMachine.count, teamId: targetTeam }
+  return { score, newScore, actualCount: teamMachine.count, teamId: targetTeam }
 }
 
 // Listen to room state changes
@@ -155,11 +181,26 @@ export const getRemainingTime = (roomData) => {
   return remaining
 }
 
-// Start the game
+// Start the game (only if all players have started)
 export const startGame = async (roomId) => {
+  const roomRef = ref(database, `rooms/${roomId}`)
+  const roomSnapshot = await get(roomRef)
+  const roomData = roomSnapshot.val()
+  
+  if (!roomData) return false
+  
+  // Check if all players have started
+  const totalPlayers = roomData.totalJoined || 0
+  const playersStarted = roomData.playersStarted || 0
+  
+  if (playersStarted < totalPlayers || totalPlayers === 0) {
+    return false // Not all players have started yet
+  }
+  
   const stateRef = ref(database, `rooms/${roomId}/state`)
   await set(stateRef, {
-    currentMachine: generateGumballs(),
+    team1Machine: generateGumballs(),
+    team2Machine: generateGumballs(),
     isActive: true,
     lastGuessTime: null,
     gameStarted: true
@@ -201,10 +242,15 @@ export const clearRoomState = async (roomId) => {
     const totalJoinedRef = ref(database, `rooms/${roomId}/totalJoined`)
     await set(totalJoinedRef, 0)
     
+    // Reset playersStarted counter
+    const playersStartedRef = ref(database, `rooms/${roomId}/playersStarted`)
+    await set(playersStartedRef, 0)
+    
     // Reset game state
     const stateRef = ref(database, `rooms/${roomId}/state`)
     await set(stateRef, {
-      currentMachine: generateGumballs(),
+      team1Machine: generateGumballs(),
+      team2Machine: generateGumballs(),
       isActive: true,
       lastGuessTime: null,
       gameStarted: false

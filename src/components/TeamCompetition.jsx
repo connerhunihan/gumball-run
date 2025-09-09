@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import GumballMachine from './GumballMachine'
 import StarScore from './StarScore.jsx'
 import EstimateComponent from './EstimateComponent.jsx'
+import PouringParticleSimulationWrapper from './PouringParticleSimulation.jsx'
 import { subscribeToRoom, subscribeToScores, submitGuess, isGameActive, getRemainingTime } from '../lib/room.js'
 
 export default function TeamCompetition() {
@@ -18,6 +19,8 @@ export default function TeamCompetition() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [lastGuessResult, setLastGuessResult] = useState(null)
   const [showGuessResult, setShowGuessResult] = useState(false)
+  const [particleCount, setParticleCount] = useState(0)
+  const [isPouring, setIsPouring] = useState(false)
 
   // Subscribe to room updates
   useEffect(() => {
@@ -25,6 +28,12 @@ export default function TeamCompetition() {
 
     const unsubscribe = subscribeToRoom(roomId, (data) => {
       setRoomData(data)
+      
+      // Update particle count when machine changes
+      if (data?.state?.[`${playerTeam}Machine`]?.count) {
+        setParticleCount(data.state[`${playerTeam}Machine`].count)
+        setIsPouring(true) // Trigger pouring animation
+      }
       
       // Check if game is over
       if (!isGameActive(data)) {
@@ -43,9 +52,13 @@ export default function TeamCompetition() {
     })
 
     return () => unsubscribe()
-  }, [roomId, navigate, team1Players, team2Players])
+  }, [roomId, navigate, team1Players, team2Players, playerTeam])
 
   // Handle guess submission (for both teams)
+  const handlePourComplete = () => {
+    setIsPouring(false)
+  }
+
   const handleSubmitGuess = async (number, confidence = 'Medium') => {
     if (number.trim() && !isSubmitting) {
       setIsSubmitting(true)
@@ -83,7 +96,7 @@ export default function TeamCompetition() {
   }
 
   const remainingTime = getRemainingTime(roomData)
-  const currentMachine = roomData.state?.currentMachine
+  const currentMachine = roomData.state?.[`${playerTeam}Machine`] || roomData.state?.currentMachine
   const team1Score = roomData.teams?.team1?.score || 0
   const team2Score = roomData.teams?.team2?.score || 0
 
@@ -112,7 +125,7 @@ export default function TeamCompetition() {
               
               {/* Main area */}
               <div 
-                className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative"
+                className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden"
                 style={{
                   borderRadius: '32px',
                   boxShadow: '4px 4px 0px 0px #000000',
@@ -120,31 +133,30 @@ export default function TeamCompetition() {
                   width: '400px'
                 }}
               >
-                {/* Gumball machine */}
-                <div className="w-full h-48 mx-auto mb-4 flex items-center justify-center">
-                  {currentMachine && (
-                    <GumballMachine balls={currentMachine.balls} count={currentMachine.count} />
-                  )}
+                {/* Pouring particle simulation background */}
+                <div className="absolute inset-0">
+                  <PouringParticleSimulationWrapper
+                    particleCount={particleCount}
+                    colors={['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#a55eea', '#26de81']}
+                    sizeRange={[0.08, 0.25]}
+                    containerSize={8}
+                    className="w-full h-full"
+                    onPourComplete={handlePourComplete}
+                  />
                 </div>
                 
-                {/* Team name */}
-                <div className="text-center">
-                  <h2 className="text-black font-normal text-xl" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-                    {playerTeam === 'team1' ? 'Guestimators' : 'Quote warriors'}
-                  </h2>
-                  <p className="text-black font-light text-sm">
-                    {playerTeam === 'team1' ? team1Players.join(', ') : team2Players.join(', ')}
-                  </p>
+                {/* Content overlay */}
+                <div className="relative z-10 h-full flex flex-col justify-center">
+                  {/* Estimate component - only show for Quote warriors (team2) */}
+                  {playerTeam === 'team2' && (
+                    <EstimateComponent 
+                      onSubmitGuess={handleSubmitGuess}
+                      isSubmitting={isSubmitting}
+                      actualCount={currentMachine?.count}
+                      particleCount={particleCount}
+                    />
+                  )}
                 </div>
-
-                {/* Estimate component - only show for Quote warriors (team2) */}
-                {playerTeam === 'team2' && (
-                  <EstimateComponent 
-                    onSubmitGuess={handleSubmitGuess}
-                    isSubmitting={isSubmitting}
-                    actualCount={currentMachine?.count}
-                  />
-                )}
               </div>
               
               {/* Guess input - show for both teams */}
