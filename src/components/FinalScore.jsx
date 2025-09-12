@@ -3,14 +3,15 @@ import { useLocation, useNavigate } from 'react-router-dom'
 export default function FinalScore() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { scores } = location.state || { scores: { team1: 0, team2: 0 } }
+  const { scores, roomId } = location.state || { scores: { team1: 0, team2: 0 } }
   
   const handleViewLeaderboard = () => {
     navigate('/leaderboard', { 
       state: { 
         team1Players: location.state?.team1Players || [],
         team2Players: location.state?.team2Players || [],
-        scores: location.state?.scores || { team1: 0, team2: 0 }
+        scores: location.state?.scores || { team1: 0, team2: 0 },
+        fromHomepage: location.state?.fromHomepage || false
       } 
     })
   }
@@ -20,7 +21,8 @@ export default function FinalScore() {
   }
 
   return (
-    <div className="min-h-screen bg-[#8eebff] flex items-center justify-center p-8">
+    <div className="min-h-screen bg-[#8eebff] flex flex-col items-center justify-center p-8">
+      
       <div className="flex gap-8 max-w-6xl w-full">
         {/* Team 1 Score - Guestimators */}
         <div className="flex-1">

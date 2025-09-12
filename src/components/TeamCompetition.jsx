@@ -105,7 +105,8 @@ export default function TeamCompetition() {
             stats: {
               team1: team1Stats,
               team2: team2Stats
-            }
+            },
+            fromHomepage: location.state?.fromHomepage || false
           } 
         })
       }
@@ -189,7 +190,8 @@ export default function TeamCompetition() {
   }
 
   return (
-    <div className="h-screen bg-[#8eebff] flex items-center justify-center p-4 overflow-hidden">
+    <div className="h-screen bg-[#8eebff] flex flex-col items-center justify-center p-4 overflow-hidden">
+      
       <div className="flex gap-8 max-w-6xl w-full">
         {/* Left side - Star score for Team 1 (Guestimators) */}
         <StarScore score={team1Score} teamName="Guestimators" isLeft={true} />
@@ -207,7 +209,7 @@ export default function TeamCompetition() {
               
               {/* Main area */}
               <div 
-                className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden"
+                className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden mt-8"
                 style={{
                   borderRadius: '32px',
                   boxShadow: '4px 4px 0px 0px #000000',

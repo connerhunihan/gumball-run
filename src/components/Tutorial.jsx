@@ -59,6 +59,7 @@ export default function Tutorial() {
         team1Players,
         team2Players,
         playerTeam,
+        fromHomepage: location.state?.fromHomepage || false,
         playerId
       } 
     })
@@ -66,8 +67,9 @@ export default function Tutorial() {
 
   return (
     <div className="h-screen bg-[#8eebff] flex flex-col items-center justify-center p-4 overflow-hidden">
-      {/* Title - left aligned as in Figma */}
-      <div className="w-full max-w-5xl mb-8">
+      
+      {/* Title - centered */}
+      <div className="w-full max-w-5xl mb-8 text-center">
         <h1 className="text-black font-black text-5xl" style={{ 
           fontFamily: 'Lexend Exa, sans-serif',
           letterSpacing: '-4.48px',
@@ -77,16 +79,16 @@ export default function Tutorial() {
         </h1>
       </div>
 
-      <div className="flex gap-8 max-w-5xl w-full">
+      <div className="flex gap-8 max-w-5xl w-full justify-center">
         {/* Left panel - Instructions */}
-        <div className="flex-1 flex flex-col items-center" style={{ width: '400px' }}>
+        <div className="flex flex-col items-center" style={{ width: '400px' }}>
           <div className="text-center" style={{ width: '400px' }}>
             {/* Timer area - empty/transparent */}
             <div className="h-[40px] mb-2"></div>
             
             {/* Main area */}
             <div 
-              className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden"
+              className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden mt-8"
               style={{
                 borderRadius: '32px',
                 boxShadow: '4px 4px 0px 0px #000000',
@@ -105,7 +107,7 @@ export default function Tutorial() {
             </div>
             
             {/* Instructions and input */}
-            <div className="text-left mb-4">
+            <div className="text-center mb-4">
               <p className="text-black font-normal text-xl mb-2" style={{ 
                 fontFamily: 'Lexend Exa, sans-serif',
                 fontSize: '20px',
@@ -115,7 +117,7 @@ export default function Tutorial() {
                 You make your own guess ...
               </p>
               <div 
-                className="bg-white border-4 border-black p-2"
+                className="bg-white border-4 border-black p-2 mx-auto"
                 style={{
                   borderRadius: '8px',
                   height: '60px',
@@ -142,7 +144,7 @@ export default function Tutorial() {
         </div>
 
         {/* Right panel - Example */}
-        <div className="flex-1 flex flex-col items-center" style={{ width: '400px' }}>
+        <div className="flex flex-col items-center" style={{ width: '400px' }}>
           {/* Timer with countdown - right aligned to yellow box with space */}
           <div className="h-[40px] mb-8 flex justify-end" style={{ width: '400px' }}>
             <TimerDisplay timeLeft={timeLeft} />
@@ -169,45 +171,39 @@ export default function Tutorial() {
               </div>
               
               {/* Example guess tags */}
-              <div className="absolute bottom-4 right-4 z-10">
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 flex flex-col items-center gap-2">
                 <div 
-                  className="bg-[#ffff00] border-2 border-black mb-1"
+                  className="bg-[#ffff00] border-2 border-black flex items-center justify-center"
                   style={{
-                    borderRadius: '2px',
-                    width: '120px',
-                    height: '35px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
+                    borderRadius: '4px',
+                    width: '211px',
+                    height: '61px'
                   }}
                 >
-                  <span className="text-black font-normal text-lg" style={{ 
+                  <span className="text-black font-normal text-center" style={{ 
                     fontFamily: 'Lexend Exa, sans-serif',
-                    fontSize: '16px',
+                    fontSize: '32px',
                     fontWeight: '400',
-                    lineHeight: '22px',
-                    letterSpacing: '-0.48px'
+                    letterSpacing: '-0.96px',
+                    lineHeight: '44.8px'
                   }}>
                     Medium
                   </span>
                 </div>
                 <div 
-                  className="bg-white border-2 border-black"
+                  className="bg-white border-2 border-black flex items-center justify-center"
                   style={{
-                    borderRadius: '2px',
-                    width: '70px',
-                    height: '35px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
+                    borderRadius: '4px',
+                    width: '124px',
+                    height: '61px'
                   }}
                 >
-                  <span className="text-black font-normal text-lg" style={{ 
+                  <span className="text-black font-normal text-center" style={{ 
                     fontFamily: 'Lexend Exa, sans-serif',
-                    fontSize: '16px',
+                    fontSize: '32px',
                     fontWeight: '400',
-                    lineHeight: '22px',
-                    letterSpacing: '-0.48px'
+                    letterSpacing: '-0.96px',
+                    lineHeight: '44.8px'
                   }}>
                     256
                   </span>
@@ -216,7 +212,7 @@ export default function Tutorial() {
             </div>
             
             {/* Instructions and input */}
-            <div className="text-left mb-4">
+            <div className="text-center mb-4">
               <p className="text-black font-normal text-xl mb-2" style={{ 
                 fontFamily: 'Lexend Exa, sans-serif',
                 fontSize: '20px',
@@ -226,7 +222,7 @@ export default function Tutorial() {
                 ... you guess with a estimate
               </p>
               <div 
-                className="bg-white border-4 border-black p-2"
+                className="bg-white border-4 border-black p-2 mx-auto"
                 style={{
                   borderRadius: '8px',
                   height: '60px',

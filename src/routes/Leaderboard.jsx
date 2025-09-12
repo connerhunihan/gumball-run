@@ -16,7 +16,7 @@ function saveLeaders(items) {
 export default function Leaderboard() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { team1Players, team2Players, scores } = location.state || {}
+  const { team1Players, team2Players, scores, roomId } = location.state || {}
   
   const [leaders, setLeaders] = useState([])
   const teamsAddedRef = useRef(false)
@@ -30,26 +30,26 @@ export default function Leaderboard() {
     if (scores && (scores.team1 > 0 || scores.team2 > 0) && !teamsAddedRef.current) {
       const newLeaders = []
       
-      // Add team 1 (Guestimators)
+      // Add team 1 (Guestimators) - Manual
       if (scores.team1 > 0) {
         const team1PlayerNames = team1Players?.map(p => p.name).filter(Boolean).join(', ') || 'Guestimators'
         newLeaders.push({
           id: crypto.randomUUID(),
           name: team1PlayerNames,
-          playerType: 'Team',
+          playerType: 'Manual',
           region: 'Game',
           score: scores.team1,
           at: Date.now()
         })
       }
       
-      // Add team 2 (Quote Warriors)
+      // Add team 2 (Quote Warriors) - AI
       if (scores.team2 > 0) {
         const team2PlayerNames = team2Players?.map(p => p.name).filter(Boolean).join(', ') || 'Quote Warriors'
         newLeaders.push({
           id: crypto.randomUUID(),
           name: team2PlayerNames,
-          playerType: 'Team',
+          playerType: 'AI',
           region: 'Game',
           score: scores.team2,
           at: Date.now()

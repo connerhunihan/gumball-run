@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import GamePanel from './GamePanel.jsx'
+import RoomNavigation from './RoomNavigation.jsx'
 import { getOrCreateActiveRoom, roomExists, registerVisitor, subscribeToRoom } from '../lib/room.js'
 
 export default function JoinGame() {
@@ -87,7 +88,8 @@ export default function JoinGame() {
       state: { 
         selectedTeam: teamName,
         roomId: roomId,
-        visitorId: visitorId
+        visitorId: visitorId,
+        fromHomepage: location.state?.fromHomepage || false
       } 
     })
   }
@@ -150,12 +152,15 @@ export default function JoinGame() {
   }
 
   return (
-    <div className="h-screen bg-[#8eebff] flex items-center justify-center p-4 overflow-hidden">
-      {/* Room information header */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
-        <div className="text-black text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-          Room: <span className="font-bold">{roomId}</span>
-        </div>
+    <div className="h-screen bg-[#8eebff] flex flex-col items-center justify-center p-4 overflow-hidden">
+      {/* Room Navigation and Copy Link - aligned on same line */}
+      <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
+        {/* Room Navigation - only show if user came from homepage */}
+        {location.state?.fromHomepage && (
+          <RoomNavigation currentRoomId={roomId} />
+        )}
+        
+        {/* Copy Link Button */}
         <button
           onClick={copyRoomUrl}
           className="bg-white border-2 border-black rounded-lg px-4 py-2 text-black font-bold text-sm transition-all duration-200 hover:scale-105 flex items-center gap-2"

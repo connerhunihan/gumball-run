@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import GamePanel from './GamePanel.jsx'
+import RoomNavigation from './RoomNavigation.jsx'
 import { createRoom, joinTeam, subscribeToRoom, generateRoomId, startGame, markPlayerStarted, updateVisitorStatus, markVisitorStarted } from '../lib/room.js'
 
 export default function TeamSetup() {
@@ -69,6 +70,7 @@ export default function TeamSetup() {
               team1Players, 
               team2Players,
               playerTeam: selectedTeam === 'Guestimators' ? 'team1' : 'team2',
+              fromHomepage: location.state?.fromHomepage || false,
               playerId
             } 
           })
@@ -154,7 +156,14 @@ export default function TeamSetup() {
 
 
   return (
-    <div className="h-screen bg-[#8eebff] flex items-center justify-center p-4 overflow-hidden">
+    <div className="h-screen bg-[#8eebff] flex flex-col items-center justify-center p-4 overflow-hidden">
+      {/* Room Navigation - only show if user came from homepage */}
+      {location.state?.fromHomepage && (
+        <div className="absolute top-4 left-4 z-20">
+          <RoomNavigation currentRoomId={roomId} />
+        </div>
+      )}
+      
       <div className="flex gap-8 justify-center">
         {/* Team 1 Panel - Guestimators */}
         <div className="flex flex-col items-center">

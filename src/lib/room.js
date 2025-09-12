@@ -2,7 +2,8 @@ import {
   ref, 
   set, 
   get, 
-  onValue
+  onValue,
+  remove
 } from 'firebase/database'
 import { database } from './firebase.js'
 import { generateGumballs, scoreForGuess } from './gumballs.js'
@@ -338,6 +339,13 @@ export const roomExists = async (roomId) => {
   const roomRef = ref(database, `rooms/${roomId}`)
   const roomSnapshot = await get(roomRef)
   return roomSnapshot.exists()
+}
+
+// Delete a room completely
+export const deleteRoom = async (roomId) => {
+  const roomRef = ref(database, `rooms/${roomId}`)
+  await remove(roomRef)
+  console.log(`Room ${roomId} deleted`)
 }
 
 // Clear room state (remove all players)
