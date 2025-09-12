@@ -65,7 +65,7 @@ export default function RoomNavigation({ currentRoomId }) {
           }`}
           style={{
             fontFamily: 'Lexend Exa, sans-serif',
-            boxShadow: '2px 2px 0px 0px #000000'
+            boxShadow: '4px 4px 0px 0px #000000'
           }}
         >
           Room: {room.roomId} (Players: {room.playerCount})

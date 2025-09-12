@@ -86,7 +86,8 @@ export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualC
         style={{
           borderRadius: '4px',
           width: '211px',
-          height: '61px'
+          height: '61px',
+          boxShadow: '6px 6px 0px 0px #000000'
         }}
       >
         <span 
@@ -109,7 +110,8 @@ export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualC
         style={{
           borderRadius: '4px',
           width: '124px',
-          height: '61px'
+          height: '61px',
+          boxShadow: '6px 6px 0px 0px #000000'
         }}
       >
         <div

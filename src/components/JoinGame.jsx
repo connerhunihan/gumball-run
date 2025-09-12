@@ -215,7 +215,7 @@ export default function JoinGame() {
               fontWeight: '500',
               letterSpacing: '0px',
               lineHeight: '32px',
-              boxShadow: '4px 4px 0px 0px #000000',
+              boxShadow: '8px 8px 0px 0px #000000',
               borderRadius: '16px'
             }}
           >
@@ -257,7 +257,7 @@ export default function JoinGame() {
               fontWeight: '500',
               letterSpacing: '0px',
               lineHeight: '32px',
-              boxShadow: '4px 4px 0px 0px #000000',
+              boxShadow: '8px 8px 0px 0px #000000',
               borderRadius: '16px'
             }}
           >

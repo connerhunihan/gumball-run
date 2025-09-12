@@ -168,7 +168,7 @@ export default function TestTeamCompetition() {
                 className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative"
                 style={{
                   borderRadius: '32px',
-                  boxShadow: '4px 4px 0px 0px #000000',
+                  boxShadow: '8px 8px 0px 0px #000000',
                   height: '300px',
                   width: '400px'
                 }}
@@ -206,7 +206,7 @@ export default function TestTeamCompetition() {
                 className="bg-white border-4 border-black p-4"
                 style={{
                   borderRadius: '16px',
-                  boxShadow: '4px 4px 0px 0px #000000',
+                  boxShadow: '8px 8px 0px 0px #000000',
                   height: '80px',
                   width: '400px'
                 }}
@@ -237,7 +237,7 @@ export default function TestTeamCompetition() {
                 className="bg-white border-4 border-black p-4"
                 style={{ 
                   borderRadius: '12px', 
-                  boxShadow: '4px 4px 0px 0px #000',
+                  boxShadow: '8px 8px 0px 0px #000',
                   width: '400px'
                 }}
               >

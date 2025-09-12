@@ -91,7 +91,7 @@ export default function Tutorial() {
               className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden mt-8"
               style={{
                 borderRadius: '32px',
-                boxShadow: '4px 4px 0px 0px #000000',
+                boxShadow: '8px 8px 0px 0px #000000',
                 height: '300px',
                 width: '400px'
               }}
@@ -156,7 +156,7 @@ export default function Tutorial() {
               className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden"
               style={{
                 borderRadius: '32px',
-                boxShadow: '4px 4px 0px 0px #000000',
+                boxShadow: '8px 8px 0px 0px #000000',
                 height: '300px',
                 width: '400px'
               }}
@@ -177,7 +177,8 @@ export default function Tutorial() {
                   style={{
                     borderRadius: '4px',
                     width: '211px',
-                    height: '61px'
+                    height: '61px',
+                    boxShadow: '6px 6px 0px 0px #000000'
                   }}
                 >
                   <span className="text-black font-normal text-center" style={{ 
@@ -195,7 +196,8 @@ export default function Tutorial() {
                   style={{
                     borderRadius: '4px',
                     width: '124px',
-                    height: '61px'
+                    height: '61px',
+                    boxShadow: '6px 6px 0px 0px #000000'
                   }}
                 >
                   <span className="text-black font-normal text-center" style={{ 

@@ -15,6 +15,7 @@ export default function FinalScore() {
         team1Players: location.state?.team1Players || [],
         team2Players: location.state?.team2Players || [],
         scores: location.state?.scores || { team1: 0, team2: 0 },
+        stats: location.state?.stats || { team1: { guessCount: 0, totalAccuracy: 0 }, team2: { guessCount: 0, totalAccuracy: 0 } },
         fromHomepage: location.state?.fromHomepage || false
       } 
     })
@@ -32,7 +33,7 @@ export default function FinalScore() {
         <div className="flex-1">
           <div className="p-8 text-center">
             {/* Team name and score */}
-            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8">
+            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8" style={{ boxShadow: '8px 8px 0px 0px #000000' }}>
               <h2 className="text-black font-normal text-3xl mb-4" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
                 Guestimators
               </h2>
@@ -58,7 +59,7 @@ export default function FinalScore() {
         <div className="flex-1">
           <div className="p-8 text-center">
             {/* Team name and score */}
-            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8">
+            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8" style={{ boxShadow: '8px 8px 0px 0px #000000' }}>
               <h2 className="text-black font-normal text-3xl mb-4" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
                 Quote warriors
               </h2>
@@ -86,6 +87,7 @@ export default function FinalScore() {
         <button
           onClick={handlePlayAgain}
           className="bg-white border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          style={{ boxShadow: '8px 8px 0px 0px #000000' }}
           style={{ 
             fontFamily: 'Lexend Exa, sans-serif',
             letterSpacing: '-0.07em'
@@ -96,6 +98,7 @@ export default function FinalScore() {
         <button
           onClick={handleViewLeaderboard}
           className="bg-white border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          style={{ boxShadow: '8px 8px 0px 0px #000000' }}
           style={{ 
             fontFamily: 'Lexend Exa, sans-serif',
             letterSpacing: '-0.07em'

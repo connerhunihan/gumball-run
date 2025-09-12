@@ -18,6 +18,9 @@ export default function Leaderboard() {
   const navigate = useNavigate()
   const { team1Players, team2Players, scores, roomId, stats } = location.state || {}
   
+  // Debug logging
+  console.log('Leaderboard received data:', { team1Players, team2Players, scores, stats })
+  
   const [leaders, setLeaders] = useState([])
   const teamsAddedRef = useRef(false)
 
@@ -33,7 +36,7 @@ export default function Leaderboard() {
       // Add team 1 (Guestimators) - Manual
       if (scores.team1 > 0) {
         const team1PlayerNames = team1Players?.map(p => p.name).filter(Boolean).join(', ') || 'Guestimators'
-        newLeaders.push({
+        const team1Entry = {
           id: crypto.randomUUID(),
           name: team1PlayerNames,
           playerType: 'Manual',
@@ -42,13 +45,15 @@ export default function Leaderboard() {
           accuracy: stats?.team1?.totalAccuracy || 0,
           guessCount: stats?.team1?.guessCount || 0,
           at: Date.now()
-        })
+        }
+        console.log('Adding team 1 entry:', team1Entry)
+        newLeaders.push(team1Entry)
       }
       
       // Add team 2 (Quote Warriors) - AI
       if (scores.team2 > 0) {
         const team2PlayerNames = team2Players?.map(p => p.name).filter(Boolean).join(', ') || 'Quote Warriors'
-        newLeaders.push({
+        const team2Entry = {
           id: crypto.randomUUID(),
           name: team2PlayerNames,
           playerType: 'AI',
@@ -57,7 +62,9 @@ export default function Leaderboard() {
           accuracy: stats?.team2?.totalAccuracy || 0,
           guessCount: stats?.team2?.guessCount || 0,
           at: Date.now()
-        })
+        }
+        console.log('Adding team 2 entry:', team2Entry)
+        newLeaders.push(team2Entry)
       }
       
       if (newLeaders.length > 0) {
@@ -91,7 +98,7 @@ export default function Leaderboard() {
           className="bg-white border-4 border-black p-6 mx-auto"
           style={{
             borderRadius: '32px',
-            boxShadow: '4px 4px 0px 0px #000000',
+            boxShadow: '8px 8px 0px 0px #000000',
             maxWidth: '800px'
           }}
         >

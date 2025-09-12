@@ -239,6 +239,7 @@ export default function Game() {
             onClick={submitGuesses}
             disabled={!teamAGuess || !teamBGuess}
             className="bg-white border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50"
+            style={{ boxShadow: '8px 8px 0px 0px #000000' }}
             style={{ 
               fontFamily: 'Lexend Exa, sans-serif',
               letterSpacing: '-0.07em'

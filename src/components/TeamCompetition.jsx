@@ -286,7 +286,7 @@ export default function TeamCompetition() {
                 className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden mt-8"
                 style={{
                   borderRadius: '32px',
-                  boxShadow: '4px 4px 0px 0px #000000',
+                  boxShadow: '8px 8px 0px 0px #000000',
                   height: '300px',
                   width: '400px'
                 }}
@@ -322,7 +322,7 @@ export default function TeamCompetition() {
                 className="bg-white border-4 border-black p-4"
                 style={{
                   borderRadius: '16px',
-                  boxShadow: '4px 4px 0px 0px #000000',
+                  boxShadow: '8px 8px 0px 0px #000000',
                   height: '80px',
                   width: '400px'
                 }}
@@ -357,7 +357,7 @@ export default function TeamCompetition() {
                 className="bg-white border-4 border-black p-4"
                 style={{ 
                   borderRadius: '12px', 
-                  boxShadow: '4px 4px 0px 0px #000',
+                  boxShadow: '8px 8px 0px 0px #000',
                   width: '400px'
                 }}
               >
@@ -385,7 +385,7 @@ export default function TeamCompetition() {
                   fontFamily: 'Lexend Exa, sans-serif',
                   fontSize: '14px',
                   fontWeight: 'bold',
-                  boxShadow: '2px 2px 0px 0px #000'
+                  boxShadow: '4px 4px 0px 0px #000'
                 }}
               >
                 {notification.playerName} +{notification.score} points!

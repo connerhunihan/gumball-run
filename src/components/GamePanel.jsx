@@ -18,7 +18,7 @@ export default function GamePanel({
             width: '400px',
             height: '300px',
             borderRadius: '32px',
-            boxShadow: '4px 4px 0px 0px #000000'
+            boxShadow: '8px 8px 0px 0px #000000'
           }}
         >
           {children}

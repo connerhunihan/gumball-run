@@ -105,7 +105,8 @@ export default function StartScreen() {
           style={{ 
             fontFamily: 'Lexend Exa, sans-serif',
             letterSpacing: '-0.07em',
-            lineHeight: '1.1'
+            lineHeight: '1.1',
+            boxShadow: '12px 12px 0px 0px #000000'
           }}
         >
           {isCreatingRoom ? 'Creating...' : 'Gumball Run'}
