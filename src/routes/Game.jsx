@@ -2,7 +2,9 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { generateGumballs, randomInt, scoreForGuess } from '../lib/gumballs'
 import GumballMachine from '../components/GumballMachine'
-import Timer from '../components/Timer'
+import TimerDisplay from '../components/TimerDisplay'
+import StarScore from '../components/StarScore'
+import TeamStats from '../components/TeamStats'
 
 export default function Game() {
   const location = useLocation()
@@ -16,14 +18,24 @@ export default function Game() {
   const [teamAGuess, setTeamAGuess] = useState('')
   const [teamBGuess, setTeamBGuess] = useState('')
   const [teamBHint, setTeamBHint] = useState(null)
-  const [timeLeft, setTimeLeft] = useState(180)
+  const [timeLeft, setTimeLeft] = useState(30)
   const [phase, setPhase] = useState('guess')
   const timerRef = useRef(null)
+  const timeLeftRef = useRef(30)
+  
+  // Track team stats
+  const [teamAStats, setTeamAStats] = useState({ guessCount: 0, totalAccuracy: 0 })
+  const [teamBStats, setTeamBStats] = useState({ guessCount: 0, totalAccuracy: 0 })
 
   const machine = useMemo(() => generateGumballs(), [round])
 
   useEffect(() => {
-    return () => clearInterval(timerRef.current)
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -34,20 +46,46 @@ export default function Game() {
     setTeamBHint({ estimate, confidence })
   }, [round])
 
-  // Timer effect
+  // Timer effect - completely independent countdown
   useEffect(() => {
     if (phase === 'guess') {
-      const interval = setInterval(() => {
+      console.log('Starting timer, timeLeft:', timeLeft)
+      
+      // Clear any existing timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+      
+      // Start new timer that runs independently
+      timerRef.current = setInterval(() => {
         setTimeLeft(prev => {
-          if (prev <= 1) {
-            setPhase('end')
+          const newTime = prev - 1
+          console.log('Timer tick, prev:', prev, 'new:', newTime)
+          
+          if (newTime <= 0) {
+            console.log('Timer ended, setting phase to end')
+            // Use setTimeout to avoid state update during render
+            setTimeout(() => setPhase('end'), 0)
             return 0
           }
-          return prev - 1
+          return newTime
         })
       }, 1000)
       
-      return () => clearInterval(interval)
+      return () => {
+        if (timerRef.current) {
+          console.log('Clearing timer interval')
+          clearInterval(timerRef.current)
+          timerRef.current = null
+        }
+      }
+    } else {
+      // Clear any existing interval when not in guess phase
+      if (timerRef.current) {
+        console.log('Clearing timer interval (not in guess phase)')
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
     }
   }, [phase])
 
@@ -58,8 +96,25 @@ export default function Game() {
     if (!Number.isFinite(a) || a <= 0 || !Number.isFinite(b) || b <= 0) return
     const aScore = scoreForGuess(trueCount, a)
     const bScore = scoreForGuess(trueCount, b)
+    
+    // Calculate accuracy (0-1 scale, closer to 1 is better)
+    const aAccuracy = 1 - Math.abs(a - trueCount) / trueCount
+    const bAccuracy = 1 - Math.abs(b - trueCount) / trueCount
+    
+    // Update scores
     setTeamAScore(s => s + aScore)
     setTeamBScore(s => s + bScore)
+    
+    // Update stats
+    setTeamAStats(prev => ({
+      guessCount: prev.guessCount + 1,
+      totalAccuracy: (prev.totalAccuracy * prev.guessCount + aAccuracy) / (prev.guessCount + 1)
+    }))
+    setTeamBStats(prev => ({
+      guessCount: prev.guessCount + 1,
+      totalAccuracy: (prev.totalAccuracy * prev.guessCount + bAccuracy) / (prev.guessCount + 1)
+    }))
+    
     setPhase('reveal')
   }
 
@@ -70,7 +125,11 @@ export default function Game() {
         state: { 
           team, 
           players, 
-          scores: { team1: teamAScore, team2: teamBScore } 
+          scores: { team1: teamAScore, team2: teamBScore },
+          stats: {
+            team1: teamAStats,
+            team2: teamBStats
+          }
         } 
       })
     } else {
@@ -78,7 +137,8 @@ export default function Game() {
       setTeamAGuess('')
       setTeamBGuess('')
       setPhase('guess')
-      setTimeLeft(180) // Reset timer for next round
+      setTimeLeft(30) // Reset timer for next round
+      timeLeftRef.current = 30 // Reset ref as well
     }
   }
 
@@ -89,10 +149,8 @@ export default function Game() {
         <div className="flex-1">
           <div className="bg-white border-4 border-black rounded-2xl p-8 text-center">
             {/* Timer */}
-            <div className="h-16 mb-4 bg-gray-200 rounded-lg flex items-center justify-center">
-              <span className="text-black font-light text-2xl tracking-widest">
-                {Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}
-              </span>
+            <div className="mb-4 flex justify-center">
+              <TimerDisplay timeLeft={timeLeft} />
             </div>
             
             {/* Main area */}
@@ -102,11 +160,15 @@ export default function Game() {
                 <GumballMachine balls={machine.balls} count={machine.count} />
               </div>
               
-              {/* Team name */}
-              <div className="text-center">
+              {/* Team name and stats */}
+              <div className="text-center space-y-4">
                 <h2 className="text-black font-normal text-3xl" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
                   Guestimators
                 </h2>
+                <TeamStats 
+                  accuracy={teamAStats.totalAccuracy} 
+                  guessCount={teamAStats.guessCount}
+                />
               </div>
             </div>
             
@@ -130,10 +192,8 @@ export default function Game() {
         <div className="flex-1">
           <div className="bg-white border-4 border-black rounded-2xl p-8 text-center">
             {/* Timer */}
-            <div className="h-16 mb-4 bg-gray-200 rounded-lg flex items-center justify-center">
-              <span className="text-black font-light text-2xl tracking-widest">
-                {Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}
-              </span>
+            <div className="mb-4 flex justify-center">
+              <TimerDisplay timeLeft={timeLeft} />
             </div>
             
             {/* Main area */}
@@ -143,11 +203,15 @@ export default function Game() {
                 <GumballMachine balls={machine.balls} count={machine.count} />
               </div>
               
-              {/* Team name */}
-              <div className="text-center">
+              {/* Team name and stats */}
+              <div className="text-center space-y-4">
                 <h2 className="text-black font-normal text-3xl" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
                   Quote warriors
                 </h2>
+                <TeamStats 
+                  accuracy={teamBStats.totalAccuracy} 
+                  guessCount={teamBStats.guessCount}
+                />
               </div>
             </div>
             

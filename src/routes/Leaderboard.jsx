@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useEffect, useState, useRef } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 function loadLeaders() {
   try {
@@ -15,13 +15,11 @@ function saveLeaders(items) {
 
 export default function Leaderboard() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { team1Players, team2Players, scores } = location.state || {}
   
-  const [leaders, setLeaders] = useState(() => loadLeaders())
-  const [name, setName] = useState('')
-  const [playerType, setPlayerType] = useState('Human')
-  const [region, setRegion] = useState('')
-  const [score, setScore] = useState('')
+  const [leaders, setLeaders] = useState([])
+  const teamsAddedRef = useRef(false)
 
   useEffect(() => {
     saveLeaders(leaders)
@@ -29,13 +27,15 @@ export default function Leaderboard() {
 
   // Add current teams to leaderboard if they have scores
   useEffect(() => {
-    if (scores && (scores.team1 > 0 || scores.team2 > 0)) {
+    if (scores && (scores.team1 > 0 || scores.team2 > 0) && !teamsAddedRef.current) {
       const newLeaders = []
       
+      // Add team 1 (Guestimators)
       if (scores.team1 > 0) {
+        const team1PlayerNames = team1Players?.map(p => p.name).filter(Boolean).join(', ') || 'Guestimators'
         newLeaders.push({
           id: crypto.randomUUID(),
-          name: 'Guestimators',
+          name: team1PlayerNames,
           playerType: 'Team',
           region: 'Game',
           score: scores.team1,
@@ -43,10 +43,12 @@ export default function Leaderboard() {
         })
       }
       
+      // Add team 2 (Quote Warriors)
       if (scores.team2 > 0) {
+        const team2PlayerNames = team2Players?.map(p => p.name).filter(Boolean).join(', ') || 'Quote Warriors'
         newLeaders.push({
           id: crypto.randomUUID(),
-          name: 'Quote Warriors',
+          name: team2PlayerNames,
           playerType: 'Team',
           region: 'Game',
           score: scores.team2,
@@ -59,18 +61,13 @@ export default function Leaderboard() {
           const combined = [...prev, ...newLeaders]
           return combined.sort((a,b) => b.score - a.score).slice(0, 50)
         })
+        teamsAddedRef.current = true
       }
     }
-  }, [scores])
+  }, [scores, team1Players, team2Players])
 
-  const addLeader = () => {
-    const s = Number(score)
-    if (!name || !region || !Number.isFinite(s) || s <= 0) return
-    const item = { id: crypto.randomUUID(), name, playerType, region, score: s, at: Date.now() }
-    setLeaders(prev => [...prev, item].sort((a,b) => b.score - a.score).slice(0, 50))
-    setName('')
-    setRegion('')
-    setScore('')
+  const handlePlayAgain = () => {
+    navigate('/')
   }
 
   return (
@@ -85,119 +82,61 @@ export default function Leaderboard() {
           HIGH SCORES
         </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <section className="lg:col-span-2">
-            <div 
-              className="bg-white border-4 border-black p-6"
-              style={{
-                borderRadius: '32px',
-                boxShadow: '4px 4px 0px 0px #000000'
-              }}
-            >
-              <h2 className="font-black text-2xl mb-6 text-black" style={{
-                fontFamily: 'Lexend Exa, sans-serif'
-              }}>
-                Leaderboard
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-black">
-                      <th className="text-left px-3 py-3 font-bold text-black">Rank</th>
-                      <th className="text-left px-3 py-3 font-bold text-black">Name</th>
-                      <th className="text-left px-3 py-3 font-bold text-black">Type</th>
-                      <th className="text-left px-3 py-3 font-bold text-black">Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaders.map((l, i) => (
-                      <tr key={l.id} className="border-b border-gray-300">
-                        <td className="px-3 py-3 font-bold text-black">{i + 1}</td>
-                        <td className="px-3 py-3 text-black">{l.name}</td>
-                        <td className="px-3 py-3 text-black">{l.playerType}</td>
-                        <td className="px-3 py-3 font-bold text-black">{l.score}</td>
-                      </tr>
-                    ))}
-                    {leaders.length === 0 && (
-                      <tr>
-                        <td colSpan="4" className="px-3 py-6 text-center text-gray-500">No entries yet</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
+        {/* Leaderboard Table */}
+        <div 
+          className="bg-white border-4 border-black p-6 mx-auto"
+          style={{
+            borderRadius: '32px',
+            boxShadow: '4px 4px 0px 0px #000000',
+            maxWidth: '800px'
+          }}
+        >
+          <h2 className="font-black text-2xl mb-6 text-black text-center" style={{
+            fontFamily: 'Lexend Exa, sans-serif'
+          }}>
+            Leaderboard
+          </h2>
+          <div className="overflow-x-auto max-h-96 overflow-y-auto">
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 bg-white">
+                <tr className="border-b-2 border-black">
+                  <th className="text-left px-3 py-3 font-bold text-black">Rank</th>
+                  <th className="text-left px-3 py-3 font-bold text-black">Names</th>
+                  <th className="text-left px-3 py-3 font-bold text-black">Type</th>
+                  <th className="text-left px-3 py-3 font-bold text-black">Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaders.map((l, i) => (
+                  <tr key={l.id} className="border-b border-gray-300">
+                    <td className="px-3 py-3 font-bold text-black">{i + 1}</td>
+                    <td className="px-3 py-3 text-black">{l.name}</td>
+                    <td className="px-3 py-3 text-black">{l.playerType}</td>
+                    <td className="px-3 py-3 font-bold text-black">{l.score}</td>
+                  </tr>
+                ))}
+                {leaders.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="px-3 py-6 text-center text-gray-500">No entries yet</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-          <aside>
-            <div 
-              className="bg-[#ffff00] border-4 border-black p-6 space-y-4"
-              style={{
-                borderRadius: '32px',
-                boxShadow: '4px 4px 0px 0px #000000'
-              }}
-            >
-              <h3 className="font-black text-xl text-black" style={{
-                fontFamily: 'Lexend Exa, sans-serif'
-              }}>
-                Submit Winner
-              </h3>
-              <div>
-                <label className="text-sm font-bold text-black">Team / Name</label>
-                <input
-                  className="mt-1 w-full bg-white border-2 border-black px-3 py-2 outline-none"
-                  style={{ borderRadius: '8px' }}
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Team Alpha"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-black">Player Type</label>
-                <select
-                  className="mt-1 w-full bg-white border-2 border-black px-3 py-2 outline-none"
-                  style={{ borderRadius: '8px' }}
-                  value={playerType}
-                  onChange={e => setPlayerType(e.target.value)}
-                >
-                  <option>Human</option>
-                  <option>Assisted</option>
-                  <option>AI</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-black">Region</label>
-                <input
-                  className="mt-1 w-full bg-white border-2 border-black px-3 py-2 outline-none"
-                  style={{ borderRadius: '8px' }}
-                  value={region}
-                  onChange={e => setRegion(e.target.value)}
-                  placeholder="e.g., NA-East"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-black">Score</label>
-                <input
-                  type="number"
-                  className="mt-1 w-full bg-white border-2 border-black px-3 py-2 outline-none"
-                  style={{ borderRadius: '8px' }}
-                  value={score}
-                  onChange={e => setScore(e.target.value)}
-                  min={1}
-                />
-              </div>
-              <button
-                className="w-full bg-black text-white px-4 py-3 font-bold transition-transform hover:scale-105"
-                style={{
-                  borderRadius: '16px',
-                  fontFamily: 'Lexend Exa, sans-serif'
-                }}
-                onClick={addLeader}
-              >
-                Add to Leaderboard
-              </button>
-            </div>
-          </aside>
+        {/* Action Button */}
+        <div className="text-center mt-8">
+          <button
+            onClick={handlePlayAgain}
+            className="bg-white border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl transition-all duration-200 hover:scale-105 hover:shadow-lg"
+            style={{ 
+              fontFamily: 'Lexend Exa, sans-serif',
+              letterSpacing: '-0.07em'
+            }}
+          >
+            PLAY AGAIN
+          </button>
         </div>
       </div>
     </div>

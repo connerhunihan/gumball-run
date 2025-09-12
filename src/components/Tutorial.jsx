@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { subscribeToRoom } from '../lib/room.js'
 import GumballImage from './GumballImage.jsx'
+import TimerDisplay from './TimerDisplay.jsx'
 
 export default function Tutorial() {
   const location = useLocation()
@@ -30,14 +31,18 @@ export default function Tutorial() {
     })
 
     return () => unsubscribe()
-  }, [roomId])
+  }, [roomId, playerTeam])
 
   // Auto-start timer
   useEffect(() => {
+    console.log('Tutorial timer starting with timeLeft:', timeLeft)
     const timer = setInterval(() => {
       setTimeLeft(prev => {
+        console.log('Tutorial timer tick, prev:', prev)
         if (prev <= 1) {
-          handleStartGame()
+          console.log('Tutorial timer ended, starting game')
+          // Use setTimeout to avoid calling navigate during render
+          setTimeout(() => handleStartGame(), 0)
           return 0
         }
         return prev - 1
@@ -138,22 +143,12 @@ export default function Tutorial() {
 
         {/* Right panel - Example */}
         <div className="flex-1 flex flex-col items-center" style={{ width: '400px' }}>
+          {/* Timer with countdown - right aligned to yellow box with space */}
+          <div className="h-[40px] mb-8 flex justify-end" style={{ width: '400px' }}>
+            <TimerDisplay timeLeft={timeLeft} />
+          </div>
+          
           <div className="text-center" style={{ width: '400px' }}>
-            {/* Timer with countdown */}
-            <div 
-              className="h-[40px] mb-2 bg-gray-200 rounded-lg flex items-center justify-center"
-            >
-              <span className="text-black font-bold text-lg tracking-widest" style={{
-                fontFamily: 'Lexend Exa, sans-serif',
-                fontSize: '18px',
-                fontWeight: '700',
-                lineHeight: '25px',
-                letterSpacing: '3.6px'
-              }}>
-                STARTS IN {timeLeft}
-              </span>
-            </div>
-            
             {/* Main area with example */}
             <div 
               className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden"

@@ -28,9 +28,20 @@ export default function TeamSetup() {
     if (!roomId) return
 
     const unsubscribe = subscribeToRoom(roomId, (roomData) => {
+      console.log('Room update received:', {
+        roomId,
+        teams: roomData?.teams,
+        totalJoined: roomData?.totalJoined,
+        playersStarted: roomData?.playersStarted
+      })
+      
       if (roomData?.teams) {
         const team1PlayerList = Object.values(roomData.teams.team1?.players || {})
         const team2PlayerList = Object.values(roomData.teams.team2?.players || {})
+        console.log('Updating player lists:', {
+          team1: team1PlayerList.map(p => p.name),
+          team2: team2PlayerList.map(p => p.name)
+        })
         setTeam1Players(team1PlayerList.map(p => p.name))
         setTeam2Players(team2PlayerList.map(p => p.name))
       }
@@ -66,7 +77,7 @@ export default function TeamSetup() {
     })
 
     return () => unsubscribe()
-  }, [roomId, navigate, team1Players, team2Players, selectedTeam, playerId])
+  }, [roomId, navigate, selectedTeam, playerId])
 
   const handleKeyPress = async (team, e) => {
     if (e.key === 'Enter') {
@@ -110,7 +121,7 @@ export default function TeamSetup() {
     }
   }
 
-  const showStartButton = (userTeam === 1 && team1Players.length > 0) || (userTeam === 2 && team2Players.length > 0)
+  const showStartButton = playerId && team1Players.length > 0 && team2Players.length > 0
 
   const handleStart = async () => {
     if (!hasPlayerStarted && playerId) {
@@ -148,33 +159,32 @@ export default function TeamSetup() {
         {/* Team 1 Panel - Guestimators */}
         <div className="flex flex-col items-center">
           <GamePanel>
-            {/* Gumball image */}
-            <div className="w-full h-48 mx-auto mb-4 bg-gray-300 rounded-lg flex items-center justify-center">
-              <span className="text-gray-600 text-sm">Gumball Image</span>
-            </div>
-            
             {/* Team name and player names */}
             <div className="text-center">
-              <h2 className="text-black font-normal text-xl mb-2" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+              <h2 className="text-black font-normal text-xl mb-4" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
                 Guestimators
               </h2>
               
               {/* Show player names if any */}
-              {team1Players.length > 0 && (
-                <div className="space-y-1">
-                  {team1Players.map((name, index) => (
+              <div className="space-y-2 min-h-[200px] flex flex-col items-center justify-center">
+                {team1Players.length > 0 ? (
+                  team1Players.map((name, index) => (
                     <div key={index} className="text-black font-normal text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
                       {name}
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                ) : (
+                  <div className="text-gray-500 font-normal text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+                    Waiting for players...
+                  </div>
+                )}
+              </div>
             </div>
           </GamePanel>
 
           {/* Input field for Team 1 - always show to maintain layout */}
           <div 
-            className={`bg-white border-4 border-black p-4 mt-4 ${userTeam === 1 && team1Players.length === 0 ? 'block' : 'invisible'}`}
+            className={`bg-white border-4 border-black p-4 mt-4 ${userTeam === 1 && !playerId ? 'block' : 'invisible'}`}
             style={{
               borderRadius: '16px',
               boxShadow: '4px 4px 0px 0px #000000',
@@ -197,33 +207,32 @@ export default function TeamSetup() {
         {/* Team 2 Panel - Quote warriors */}
         <div className="flex flex-col items-center">
           <GamePanel>
-            {/* Gumball image */}
-            <div className="w-full h-48 mx-auto mb-4 bg-gray-300 rounded-lg flex items-center justify-center">
-              <span className="text-gray-600 text-sm">Gumball Image</span>
-            </div>
-            
             {/* Team name and player names */}
             <div className="text-center">
-              <h2 className="text-black font-normal text-xl mb-2" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+              <h2 className="text-black font-normal text-xl mb-4" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
                 Quote warriors
               </h2>
               
               {/* Show player names if any */}
-              {team2Players.length > 0 && (
-                <div className="space-y-1">
-                  {team2Players.map((name, index) => (
+              <div className="space-y-2 min-h-[200px] flex flex-col items-center justify-center">
+                {team2Players.length > 0 ? (
+                  team2Players.map((name, index) => (
                     <div key={index} className="text-black font-normal text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
                       {name}
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                ) : (
+                  <div className="text-gray-500 font-normal text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+                    Waiting for players...
+                  </div>
+                )}
+              </div>
             </div>
           </GamePanel>
 
           {/* Input field for Team 2 - always show to maintain layout */}
           <div 
-            className={`bg-white border-4 border-black p-4 mt-4 ${userTeam === 2 && team2Players.length === 0 ? 'block' : 'invisible'}`}
+            className={`bg-white border-4 border-black p-4 mt-4 ${userTeam === 2 && !playerId ? 'block' : 'invisible'}`}
             style={{
               borderRadius: '16px',
               boxShadow: '4px 4px 0px 0px #000000',
@@ -267,8 +276,8 @@ export default function TeamSetup() {
               borderRadius: '16px'
             }}
           >
-            {hasPlayerStarted || gameStarted 
-              ? `Waiting for others, ${playersStarted} of ${totalJoined} have started`
+            {hasPlayerStarted 
+              ? `Waiting for others, ${playersStarted} of ${totalJoined} have clicked Start`
               : 'Start'
             }
           </button>

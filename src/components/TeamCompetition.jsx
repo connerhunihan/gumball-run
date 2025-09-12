@@ -4,6 +4,7 @@ import GumballMachine from './GumballMachine'
 import StarScore from './StarScore.jsx'
 import EstimateComponent from './EstimateComponent.jsx'
 import GumballImage from './GumballImage.jsx'
+import TimerDisplay from './TimerDisplay.jsx'
 import { subscribeToRoom, subscribeToScores, submitGuess, isGameActive, getRemainingTime } from '../lib/room.js'
 
 export default function TeamCompetition() {
@@ -22,6 +23,8 @@ export default function TeamCompetition() {
   const [gumballCount, setGumballCount] = useState(50)
   const [imageKey, setImageKey] = useState(0)
   const [teammateNotifications, setTeammateNotifications] = useState([])
+  const [gameStarted, setGameStarted] = useState(false)
+  const [timeLeft, setTimeLeft] = useState(30)
 
   // Subscribe to room updates
   useEffect(() => {
@@ -29,6 +32,12 @@ export default function TeamCompetition() {
 
     const unsubscribe = subscribeToRoom(roomId, (data) => {
       setRoomData(data)
+      
+      // Check if game has started
+      if (data?.state?.gameStarted && !gameStarted) {
+        console.log('Game started!')
+        setGameStarted(true)
+      }
       
       // Get this player's individual machine
       const playerData = data?.teams?.[playerTeam]?.players?.[playerId]
@@ -67,8 +76,23 @@ export default function TeamCompetition() {
         })
       }
       
-      // Check if game is over
-      if (!isGameActive(data)) {
+      // Check if game is over (only if game has started and time is up)
+      if (data?.state?.gameStarted && !isGameActive(data)) {
+        console.log('Game ended, navigating to final score')
+        // Calculate team stats
+        const team1Players = Object.values(data?.teams?.team1?.players || {})
+        const team2Players = Object.values(data?.teams?.team2?.players || {})
+        
+        const team1Stats = {
+          guessCount: team1Players.reduce((total, p) => total + (p.guessCount || 0), 0),
+          totalAccuracy: team1Players.reduce((total, p) => total + (p.totalAccuracy || 0), 0) / (team1Players.length || 1)
+        }
+        
+        const team2Stats = {
+          guessCount: team2Players.reduce((total, p) => total + (p.guessCount || 0), 0),
+          totalAccuracy: team2Players.reduce((total, p) => total + (p.totalAccuracy || 0), 0) / (team2Players.length || 1)
+        }
+        
         navigate('/final-score', { 
           state: { 
             roomId,
@@ -77,7 +101,11 @@ export default function TeamCompetition() {
             scores: { 
               team1: data?.teams?.team1?.score || 0, 
               team2: data?.teams?.team2?.score || 0 
-            } 
+            },
+            stats: {
+              team1: team1Stats,
+              team2: team2Stats
+            }
           } 
         })
       }
@@ -85,6 +113,29 @@ export default function TeamCompetition() {
 
     return () => unsubscribe()
   }, [roomId, navigate, team1Players, team2Players, playerTeam])
+
+  // Simple timer implementation
+  useEffect(() => {
+    if (!gameStarted) return
+
+    console.log('Starting game timer')
+    const startTime = Date.now()
+    const duration = 30 * 1000 // 30 seconds
+
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startTime
+      const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000))
+      
+      setTimeLeft(remaining)
+      
+      if (remaining <= 0) {
+        clearInterval(timer)
+        console.log('Timer ended!')
+      }
+    }, 100) // Update every 100ms
+
+    return () => clearInterval(timer)
+  }, [gameStarted])
 
   // Handle guess submission (for both teams)
 
@@ -131,6 +182,12 @@ export default function TeamCompetition() {
   const team1Score = roomData.teams?.team1?.score || 0
   const team2Score = roomData.teams?.team2?.score || 0
 
+  // Handle timer completion
+  const handleTimeUp = () => {
+    console.log('Time up! Game ended.')
+    // The game end logic will be handled by the room subscription
+  }
+
   return (
     <div className="h-screen bg-[#8eebff] flex items-center justify-center p-4 overflow-hidden">
       <div className="flex gap-8 max-w-6xl w-full">
@@ -142,16 +199,9 @@ export default function TeamCompetition() {
           <div className="w-[400px]">
             <div className="text-center relative">
               {/* Timer - right aligned per Figma */}
-              <div className="h-[40px] mb-2">
-                <div className="float-right bg-transparent rounded-lg flex items-center justify-center">
-                  <span className="text-black font-bold tracking-[0.22em]" style={{
-                    fontFamily: 'Lexend Exa, sans-serif',
-                    fontSize: '18px',
-                    fontWeight: '700',
-                    lineHeight: '25px'
-                  }}>
-                    {String(Math.floor(remainingTime/60)).padStart(1,'0')}:{String(remainingTime%60).padStart(2,'0')}
-                  </span>
+              <div className="h-[40px] mb-8">
+                <div className="float-right">
+                  <TimerDisplay timeLeft={timeLeft} />
                 </div>
               </div>
               

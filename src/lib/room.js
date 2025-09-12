@@ -16,7 +16,7 @@ export const generateRoomId = () => {
 export const createRoom = async (roomId) => {
   const roomRef = ref(database, `rooms/${roomId}`)
   const now = Date.now()
-  const gameEndTime = now + (3 * 60 * 1000) // 3 minutes from now
+  const gameEndTime = now + (30 * 1000) // 30 seconds from now
   
   const roomData = {
     createdAt: now,
@@ -165,16 +165,34 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
 
 // Listen to room state changes
 export const subscribeToRoom = (roomId, callback) => {
+  // Subscribe to the entire room for game state
   const roomRef = ref(database, `rooms/${roomId}`)
-  
-  const unsubscribe = onValue(roomRef, (snapshot) => {
+  let gameUnsubscribe = onValue(roomRef, (snapshot) => {
     const data = snapshot.val()
     if (data) {
-      callback(data)
+      callback({
+        ...data,
+        _timestamp: Date.now()
+      })
+    }
+  })
+
+  // Subscribe specifically to teams for real-time player updates
+  const teamsRef = ref(database, `rooms/${roomId}/teams`)
+  let teamsUnsubscribe = onValue(teamsRef, (snapshot) => {
+    const teams = snapshot.val()
+    if (teams) {
+      callback({
+        teams,
+        _timestamp: Date.now()
+      })
     }
   })
   
-  return unsubscribe
+  return () => {
+    gameUnsubscribe()
+    teamsUnsubscribe()
+  }
 }
 
 // Listen to team scores
@@ -197,6 +215,7 @@ export const subscribeToScores = (roomId, callback) => {
 // Check if game is still active
 export const isGameActive = (roomData) => {
   if (!roomData || !roomData.state?.isActive) return false
+  if (!roomData.state?.gameStarted) return true // Game hasn't started yet
   return Date.now() < roomData.gameEndTime
 }
 
@@ -221,21 +240,36 @@ export const startGame = async (roomId) => {
   
   if (totalVisitors === 0) return false // No visitors yet
   
-  const visitorsJoined = visitors.filter(v => v.hasJoinedTeam).length
-  const visitorsStarted = visitors.filter(v => v.hasStarted).length
+  // We now check player status directly instead of using visitor status
   
-  // Need ALL visitors to have joined teams and started
-  if (visitorsJoined < totalVisitors || visitorsStarted < totalVisitors) {
-    return false // Not all visitors have joined and started yet
-  }
-  
-  // Also need at least one player from each team
+  // Get all players from both teams
   const team1Players = Object.values(roomData.teams?.team1?.players || {})
   const team2Players = Object.values(roomData.teams?.team2?.players || {})
+  const allPlayers = [...team1Players, ...team2Players]
   
-  if (team1Players.length === 0 || team2Players.length === 0) {
-    return false // Need at least one player from each team
+  // Check if all players have clicked start
+  const allStarted = allPlayers.every(player => player.hasStarted)
+  if (!allStarted) {
+    console.log('Not all players have started:', {
+      team1: team1Players.map(p => ({ name: p.name, hasStarted: p.hasStarted })),
+      team2: team2Players.map(p => ({ name: p.name, hasStarted: p.hasStarted }))
+    })
+    return false
   }
+  
+  // Need at least one player from each team
+  if (team1Players.length === 0 || team2Players.length === 0) {
+    console.log('Missing players from a team:', {
+      team1Count: team1Players.length,
+      team2Count: team2Players.length
+    })
+    return false
+  }
+  
+  // Set new game end time when game actually starts
+  const newGameEndTime = Date.now() + (30 * 1000) // 30 seconds from now
+  const gameEndTimeRef = ref(database, `rooms/${roomId}/gameEndTime`)
+  await set(gameEndTimeRef, newGameEndTime)
   
   const stateRef = ref(database, `rooms/${roomId}/state`)
   await set(stateRef, {
