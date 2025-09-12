@@ -35,24 +35,54 @@ export default function TeamCompetition() {
       const team1Players = Object.values(roomData.teams.team1?.players || {})
       const team2Players = Object.values(roomData.teams.team2?.players || {})
       
+      const team1GuessCount = team1Players.reduce((total, p) => total + (p.guessCount || 0), 0)
+      const team1Accuracy = team1Players.length > 0 
+        ? team1Players.reduce((total, p) => {
+            const playerAccuracy = (p.guessCount || 0) > 0 ? (p.totalAccuracy || 0) / (p.guessCount || 1) : 0
+            return total + playerAccuracy
+          }, 0) / team1Players.length
+        : 0
+      
+      const team2GuessCount = team2Players.reduce((total, p) => total + (p.guessCount || 0), 0)
+      const team2Accuracy = team2Players.length > 0 
+        ? team2Players.reduce((total, p) => {
+            const playerAccuracy = (p.guessCount || 0) > 0 ? (p.totalAccuracy || 0) / (p.guessCount || 1) : 0
+            return total + playerAccuracy
+          }, 0) / team2Players.length
+        : 0
+      
+      // Debug logging
+      console.log('Team stats calculation:', {
+        team1: {
+          players: team1Players.map(p => ({ 
+            name: p.name, 
+            guessCount: p.guessCount, 
+            totalAccuracy: p.totalAccuracy,
+            avgAccuracy: p.guessCount > 0 ? (p.totalAccuracy / p.guessCount * 100).toFixed(1) + '%' : '0%'
+          })),
+          teamGuessCount: team1GuessCount,
+          teamAccuracy: (team1Accuracy * 100).toFixed(1) + '%'
+        },
+        team2: {
+          players: team2Players.map(p => ({ 
+            name: p.name, 
+            guessCount: p.guessCount, 
+            totalAccuracy: p.totalAccuracy,
+            avgAccuracy: p.guessCount > 0 ? (p.totalAccuracy / p.guessCount * 100).toFixed(1) + '%' : '0%'
+          })),
+          teamGuessCount: team2GuessCount,
+          teamAccuracy: (team2Accuracy * 100).toFixed(1) + '%'
+        }
+      })
+      
       const newTeam1Stats = {
-        guessCount: team1Players.reduce((total, p) => total + (p.guessCount || 0), 0),
-        totalAccuracy: team1Players.length > 0 
-          ? team1Players.reduce((total, p) => {
-              const playerAccuracy = (p.guessCount || 0) > 0 ? (p.totalAccuracy || 0) / (p.guessCount || 1) : 0
-              return total + playerAccuracy
-            }, 0) / team1Players.length
-          : 0
+        guessCount: team1GuessCount,
+        totalAccuracy: team1Accuracy
       }
       
       const newTeam2Stats = {
-        guessCount: team2Players.reduce((total, p) => total + (p.guessCount || 0), 0),
-        totalAccuracy: team2Players.length > 0 
-          ? team2Players.reduce((total, p) => {
-              const playerAccuracy = (p.guessCount || 0) > 0 ? (p.totalAccuracy || 0) / (p.guessCount || 1) : 0
-              return total + playerAccuracy
-            }, 0) / team2Players.length
-          : 0
+        guessCount: team2GuessCount,
+        totalAccuracy: team2Accuracy
       }
       
       setTeam1Stats(newTeam1Stats)

@@ -126,7 +126,18 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
   // Calculate accuracy for this guess (0-1 scale)
   const actualCount = playerMachine.count
   const guessValue = parseInt(guess)
-  const accuracy = Math.max(0, 1 - Math.abs(actualCount - guessValue) / actualCount)
+  const error = Math.abs(actualCount - guessValue)
+  const errorPercentage = error / actualCount
+  const accuracy = Math.max(0, 1 - errorPercentage)
+  
+  // Debug logging
+  console.log(`Guess accuracy calculation:`, {
+    actualCount,
+    guessValue,
+    error,
+    errorPercentage: (errorPercentage * 100).toFixed(1) + '%',
+    accuracy: (accuracy * 100).toFixed(1) + '%'
+  })
   
   // Update player's stats
   const newPlayerScore = (playerData.score || 0) + score

@@ -16,7 +16,7 @@ function saveLeaders(items) {
 export default function Leaderboard() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { team1Players, team2Players, scores, roomId } = location.state || {}
+  const { team1Players, team2Players, scores, roomId, stats } = location.state || {}
   
   const [leaders, setLeaders] = useState([])
   const teamsAddedRef = useRef(false)
@@ -39,6 +39,8 @@ export default function Leaderboard() {
           playerType: 'Manual',
           region: 'Game',
           score: scores.team1,
+          accuracy: stats?.team1?.totalAccuracy || 0,
+          guessCount: stats?.team1?.guessCount || 0,
           at: Date.now()
         })
       }
@@ -52,6 +54,8 @@ export default function Leaderboard() {
           playerType: 'AI',
           region: 'Game',
           score: scores.team2,
+          accuracy: stats?.team2?.totalAccuracy || 0,
+          guessCount: stats?.team2?.guessCount || 0,
           at: Date.now()
         })
       }
@@ -104,6 +108,8 @@ export default function Leaderboard() {
                   <th className="text-left px-3 py-3 font-bold text-black">Names</th>
                   <th className="text-left px-3 py-3 font-bold text-black">Type</th>
                   <th className="text-left px-3 py-3 font-bold text-black">Score</th>
+                  <th className="text-left px-3 py-3 font-bold text-black">Accuracy</th>
+                  <th className="text-left px-3 py-3 font-bold text-black">Guesses</th>
                 </tr>
               </thead>
               <tbody>
@@ -113,11 +119,13 @@ export default function Leaderboard() {
                     <td className="px-3 py-3 text-black">{l.name}</td>
                     <td className="px-3 py-3 text-black">{l.playerType}</td>
                     <td className="px-3 py-3 font-bold text-black">{l.score}</td>
+                    <td className="px-3 py-3 text-black">{l.accuracy ? `${Math.round(l.accuracy * 100)}%` : 'N/A'}</td>
+                    <td className="px-3 py-3 text-black">{l.guessCount || 0}</td>
                   </tr>
                 ))}
                 {leaders.length === 0 && (
                   <tr>
-                    <td colSpan="4" className="px-3 py-6 text-center text-gray-500">No entries yet</td>
+                    <td colSpan="6" className="px-3 py-6 text-center text-gray-500">No entries yet</td>
                   </tr>
                 )}
               </tbody>
