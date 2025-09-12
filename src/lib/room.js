@@ -17,7 +17,7 @@ export const generateRoomId = () => {
 export const createRoom = async (roomId) => {
   const roomRef = ref(database, `rooms/${roomId}`)
   const now = Date.now()
-  const gameEndTime = now + (30 * 1000) // 30 seconds from now
+  const gameEndTime = now + (3 * 60 * 1000) // 3 minutes from now
   
   const roomData = {
     createdAt: now,
@@ -123,11 +123,21 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
   const playerMachine = playerData.currentMachine
   const score = scoreForGuess(parseInt(guess), playerMachine.count)
   
-  // Update player's individual score
+  // Calculate accuracy for this guess (0-1 scale)
+  const actualCount = playerMachine.count
+  const guessValue = parseInt(guess)
+  const accuracy = Math.max(0, 1 - Math.abs(actualCount - guessValue) / actualCount)
+  
+  // Update player's stats
   const newPlayerScore = (playerData.score || 0) + score
+  const newGuessCount = (playerData.guessCount || 0) + 1
+  const newTotalAccuracy = (playerData.totalAccuracy || 0) + accuracy
+  
   await set(playerRef, {
     ...playerData,
     score: newPlayerScore,
+    guessCount: newGuessCount,
+    totalAccuracy: newTotalAccuracy,
     currentMachine: generateGumballs() // Generate new machine for next round
   })
   
@@ -267,8 +277,8 @@ export const startGame = async (roomId) => {
     return false
   }
   
-  // Set new game end time when game actually starts
-  const newGameEndTime = Date.now() + (30 * 1000) // 30 seconds from now
+    // Set new game end time when game actually starts
+    const newGameEndTime = Date.now() + (3 * 60 * 1000) // 3 minutes from now
   const gameEndTimeRef = ref(database, `rooms/${roomId}/gameEndTime`)
   await set(gameEndTimeRef, newGameEndTime)
   

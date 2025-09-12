@@ -1,6 +1,7 @@
 import React from 'react'
+import TeamStats from './TeamStats.jsx'
 
-export default function StarScore({ score = 0, teamName = '' }) {
+export default function StarScore({ score = 0, teamName = '', teamStats = { guessCount: 0, totalAccuracy: 0 } }) {
   return (
     <div className="relative">
       <svg width="293" height="323" viewBox="0 0 293 323" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -28,6 +29,14 @@ export default function StarScore({ score = 0, teamName = '' }) {
         <span className="text-black font-normal text-lg" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
           {teamName}
         </span>
+      </div>
+      
+      {/* Team Stats - positioned below team name */}
+      <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 w-64">
+        <TeamStats 
+          accuracy={teamStats.totalAccuracy} 
+          guessCount={teamStats.guessCount} 
+        />
       </div>
     </div>
   )

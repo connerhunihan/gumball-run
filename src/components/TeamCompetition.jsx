@@ -5,6 +5,7 @@ import StarScore from './StarScore.jsx'
 import EstimateComponent from './EstimateComponent.jsx'
 import GumballImage from './GumballImage.jsx'
 import TimerDisplay from './TimerDisplay.jsx'
+import TeamStats from './TeamStats.jsx'
 import { subscribeToRoom, subscribeToScores, submitGuess, isGameActive, getRemainingTime } from '../lib/room.js'
 
 export default function TeamCompetition() {
@@ -24,7 +25,40 @@ export default function TeamCompetition() {
   const [imageKey, setImageKey] = useState(0)
   const [teammateNotifications, setTeammateNotifications] = useState([])
   const [gameStarted, setGameStarted] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(30)
+  const [timeLeft, setTimeLeft] = useState(180)
+  const [team1Stats, setTeam1Stats] = useState({ guessCount: 0, totalAccuracy: 0 })
+  const [team2Stats, setTeam2Stats] = useState({ guessCount: 0, totalAccuracy: 0 })
+
+  // Calculate team stats whenever room data changes
+  useEffect(() => {
+    if (roomData?.teams) {
+      const team1Players = Object.values(roomData.teams.team1?.players || {})
+      const team2Players = Object.values(roomData.teams.team2?.players || {})
+      
+      const newTeam1Stats = {
+        guessCount: team1Players.reduce((total, p) => total + (p.guessCount || 0), 0),
+        totalAccuracy: team1Players.length > 0 
+          ? team1Players.reduce((total, p) => {
+              const playerAccuracy = (p.guessCount || 0) > 0 ? (p.totalAccuracy || 0) / (p.guessCount || 1) : 0
+              return total + playerAccuracy
+            }, 0) / team1Players.length
+          : 0
+      }
+      
+      const newTeam2Stats = {
+        guessCount: team2Players.reduce((total, p) => total + (p.guessCount || 0), 0),
+        totalAccuracy: team2Players.length > 0 
+          ? team2Players.reduce((total, p) => {
+              const playerAccuracy = (p.guessCount || 0) > 0 ? (p.totalAccuracy || 0) / (p.guessCount || 1) : 0
+              return total + playerAccuracy
+            }, 0) / team2Players.length
+          : 0
+      }
+      
+      setTeam1Stats(newTeam1Stats)
+      setTeam2Stats(newTeam2Stats)
+    }
+  }, [roomData])
 
   // Subscribe to room updates
   useEffect(() => {
@@ -85,12 +119,22 @@ export default function TeamCompetition() {
         
         const team1Stats = {
           guessCount: team1Players.reduce((total, p) => total + (p.guessCount || 0), 0),
-          totalAccuracy: team1Players.reduce((total, p) => total + (p.totalAccuracy || 0), 0) / (team1Players.length || 1)
+          totalAccuracy: team1Players.length > 0 
+            ? team1Players.reduce((total, p) => {
+                const playerAccuracy = (p.guessCount || 0) > 0 ? (p.totalAccuracy || 0) / (p.guessCount || 1) : 0
+                return total + playerAccuracy
+              }, 0) / team1Players.length
+            : 0
         }
         
         const team2Stats = {
           guessCount: team2Players.reduce((total, p) => total + (p.guessCount || 0), 0),
-          totalAccuracy: team2Players.reduce((total, p) => total + (p.totalAccuracy || 0), 0) / (team2Players.length || 1)
+          totalAccuracy: team2Players.length > 0 
+            ? team2Players.reduce((total, p) => {
+                const playerAccuracy = (p.guessCount || 0) > 0 ? (p.totalAccuracy || 0) / (p.guessCount || 1) : 0
+                return total + playerAccuracy
+              }, 0) / team2Players.length
+            : 0
         }
         
         navigate('/final-score', { 
@@ -121,7 +165,7 @@ export default function TeamCompetition() {
 
     console.log('Starting game timer')
     const startTime = Date.now()
-    const duration = 30 * 1000 // 30 seconds
+    const duration = 3 * 60 * 1000 // 3 minutes
 
     const timer = setInterval(() => {
       const elapsed = Date.now() - startTime
@@ -194,7 +238,7 @@ export default function TeamCompetition() {
       
       <div className="flex gap-8 max-w-6xl w-full">
         {/* Left side - Star score for Team 1 (Guestimators) */}
-        <StarScore score={team1Score} teamName="Guestimators" isLeft={true} />
+        <StarScore score={team1Score} teamName="Guestimators" isLeft={true} teamStats={team1Stats} />
 
         {/* Center - Game panel */}
         <div className="flex-1 flex flex-col items-center relative">
@@ -321,7 +365,7 @@ export default function TeamCompetition() {
         </div>
 
         {/* Right side - Star score for Team 2 (Quote warriors) */}
-        <StarScore score={team2Score} teamName="Quote warriors" isLeft={false} />
+        <StarScore score={team2Score} teamName="Quote warriors" isLeft={false} teamStats={team2Stats} />
       </div>
     </div>
   )
