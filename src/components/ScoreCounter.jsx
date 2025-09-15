@@ -55,3 +55,4 @@ export default function ScoreCounter({ score, teamName }) {
 }
 
 
+
