@@ -8,21 +8,22 @@ export default function StartScreen() {
   const navigate = useNavigate()
   const [isCreatingRoom, setIsCreatingRoom] = useState(false)
   const [createdRooms, setCreatedRooms] = useState([])
-  const [showRoomNavigation, setShowRoomNavigation] = useState(false)
+  const [screen, setScreen] = useState('start') // 'start' or 'instructions'
 
+  const handleShowInstructions = () => {
+    setScreen('instructions')
+  }
 
   const handleCreateRoom = async () => {
     try {
       setIsCreatingRoom(true)
-      setShowRoomNavigation(true) // Show room navigation after clicking
       const roomId = generateRoomId()
       await createRoom(roomId)
       setCreatedRooms(prev => [...prev, roomId])
       
-      // Small delay to ensure room is fully created before navigation
       setTimeout(() => {
-        navigate(`/join/${roomId}`, { 
-          state: { fromHomepage: true } 
+        navigate(`/player-setup`, { 
+          state: { fromHomepage: true, roomId: roomId } 
         })
       }, 100)
     } catch (error) {
@@ -78,7 +79,6 @@ export default function StartScreen() {
 
   return (
     <div className="min-h-screen bg-[#8eebff] flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Animated particle background */}
       <div className="absolute inset-0 opacity-30">
         <ParticleSimulationWrapper
           particleCount={50}
@@ -89,28 +89,53 @@ export default function StartScreen() {
         />
       </div>
 
-      {/* Room Navigation - only show after clicking Gumball Run */}
-      {showRoomNavigation && (
-        <div className="absolute top-4 left-4 z-20">
-          <RoomNavigation />
-        </div>
-      )}
+      <div className="absolute top-4 left-4 z-20">
+        <RoomNavigation />
+      </div>
 
-      {/* Main content */}
       <div className="relative z-10 text-center">
-        <button
-          onClick={handleCreateRoom}
-          disabled={isCreatingRoom}
-          className="bg-white border-4 border-black rounded-2xl px-16 py-8 text-black font-black text-6xl transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ 
-            fontFamily: 'Lexend Exa, sans-serif',
-            letterSpacing: '-0.07em',
-            lineHeight: '1.1',
-            boxShadow: '12px 12px 0px 0px #000000'
-          }}
-        >
-          {isCreatingRoom ? 'Creating...' : 'Gumball Run'}
-        </button>
+        {screen === 'start' && (
+          <button
+            onClick={handleShowInstructions}
+            className="bg-white border-4 border-black rounded-2xl px-16 py-8 text-black font-black text-6xl transition-all duration-200 hover:scale-105 hover:shadow-lg"
+            style={{ 
+              fontFamily: 'Lexend Exa, sans-serif',
+              letterSpacing: '-0.07em',
+              lineHeight: '1.1',
+              boxShadow: '12px 12px 0px 0px #000000'
+            }}
+          >
+            Gumball Run
+          </button>
+        )}
+
+        {screen === 'instructions' && (
+          <div className="flex flex-col items-center gap-12">
+            <h1 
+              className="text-black font-black text-6xl max-w-4xl"
+              style={{
+                fontFamily: 'Lexend Exa, sans-serif',
+                letterSpacing: '-0.07em',
+                lineHeight: '1.1',
+              }}
+            >
+              Gumball Run is a competition to estimate the count of gumballs in a jar
+            </h1>
+            <button
+              onClick={handleCreateRoom}
+              disabled={isCreatingRoom}
+              className="bg-[#00f22a] border-4 border-black rounded-2xl px-16 py-8 text-black font-black text-6xl transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ 
+                fontFamily: 'Lexend Exa, sans-serif',
+                letterSpacing: '-0.07em',
+                lineHeight: '1.1',
+                boxShadow: '12px 12px 0px 0px #000000'
+              }}
+            >
+              {isCreatingRoom ? 'Creating...' : 'Play'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

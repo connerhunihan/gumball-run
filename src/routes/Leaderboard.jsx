@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 function loadLeaders() {
   try {
@@ -9,73 +9,13 @@ function loadLeaders() {
   }
 }
 
-function saveLeaders(items) {
-  localStorage.setItem('leaders', JSON.stringify(items))
-}
-
 export default function Leaderboard() {
-  const location = useLocation()
   const navigate = useNavigate()
-  const { team1Players, team2Players, scores, roomId, stats } = location.state || {}
-  
-  // Debug logging
-  console.log('Leaderboard received data:', { team1Players, team2Players, scores, stats })
-  
   const [leaders, setLeaders] = useState([])
-  const teamsAddedRef = useRef(false)
 
   useEffect(() => {
-    saveLeaders(leaders)
-  }, [leaders])
-
-  // Add current teams to leaderboard if they have scores
-  useEffect(() => {
-    if (scores && (scores.team1 > 0 || scores.team2 > 0) && !teamsAddedRef.current) {
-      const newLeaders = []
-      
-      // Add team 1 (Guestimators) - Manual
-      if (scores.team1 > 0) {
-        const team1PlayerNames = team1Players?.map(p => p.name).filter(Boolean).join(', ') || 'Guestimators'
-        const team1Entry = {
-          id: crypto.randomUUID(),
-          name: team1PlayerNames,
-          playerType: 'Manual',
-          region: 'Game',
-          score: scores.team1,
-          accuracy: stats?.team1?.totalAccuracy || 0,
-          guessCount: stats?.team1?.guessCount || 0,
-          at: Date.now()
-        }
-        console.log('Adding team 1 entry:', team1Entry)
-        newLeaders.push(team1Entry)
-      }
-      
-      // Add team 2 (Quote Warriors) - AI
-      if (scores.team2 > 0) {
-        const team2PlayerNames = team2Players?.map(p => p.name).filter(Boolean).join(', ') || 'Quote Warriors'
-        const team2Entry = {
-          id: crypto.randomUUID(),
-          name: team2PlayerNames,
-          playerType: 'AI',
-          region: 'Game',
-          score: scores.team2,
-          accuracy: stats?.team2?.totalAccuracy || 0,
-          guessCount: stats?.team2?.guessCount || 0,
-          at: Date.now()
-        }
-        console.log('Adding team 2 entry:', team2Entry)
-        newLeaders.push(team2Entry)
-      }
-      
-      if (newLeaders.length > 0) {
-        setLeaders(prev => {
-          const combined = [...prev, ...newLeaders]
-          return combined.sort((a,b) => b.score - a.score).slice(0, 50)
-        })
-        teamsAddedRef.current = true
-      }
-    }
-  }, [scores, team1Players, team2Players])
+    setLeaders(loadLeaders())
+  }, [])
 
   const handlePlayAgain = () => {
     navigate('/')
@@ -84,7 +24,6 @@ export default function Leaderboard() {
   return (
     <div className="min-h-screen bg-[#8eebff] p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Title */}
         <h1 className="text-black font-black text-5xl mb-8 text-center" style={{
           fontFamily: 'Lexend Exa, sans-serif',
           letterSpacing: '-4.48px',
@@ -93,7 +32,6 @@ export default function Leaderboard() {
           HIGH SCORES
         </h1>
 
-        {/* Leaderboard Table */}
         <div 
           className="bg-white border-4 border-black p-6 mx-auto"
           style={{
@@ -112,8 +50,7 @@ export default function Leaderboard() {
               <thead className="sticky top-0 bg-white">
                 <tr className="border-b-2 border-black">
                   <th className="text-left px-3 py-3 font-bold text-black">Rank</th>
-                  <th className="text-left px-3 py-3 font-bold text-black">Names</th>
-                  <th className="text-left px-3 py-3 font-bold text-black">Type</th>
+                  <th className="text-left px-3 py-3 font-bold text-black">Name</th>
                   <th className="text-left px-3 py-3 font-bold text-black">Score</th>
                   <th className="text-left px-3 py-3 font-bold text-black">Accuracy</th>
                   <th className="text-left px-3 py-3 font-bold text-black">Guesses</th>
@@ -121,18 +58,17 @@ export default function Leaderboard() {
               </thead>
               <tbody>
                 {leaders.map((l, i) => (
-                  <tr key={l.id} className="border-b border-gray-300">
+                  <tr key={l.id || i} className="border-b border-gray-300">
                     <td className="px-3 py-3 font-bold text-black">{i + 1}</td>
                     <td className="px-3 py-3 text-black">{l.name}</td>
-                    <td className="px-3 py-3 text-black">{l.playerType}</td>
                     <td className="px-3 py-3 font-bold text-black">{l.score}</td>
-                    <td className="px-3 py-3 text-black">{l.accuracy ? `${Math.round(l.accuracy * 100)}%` : 'N/A'}</td>
+                    <td className="px-3 py-3 text-black">{l.totalAccuracy ? `${Math.round(l.totalAccuracy / (l.guessCount || 1) * 100)}%` : 'N/A'}</td>
                     <td className="px-3 py-3 text-black">{l.guessCount || 0}</td>
                   </tr>
                 ))}
                 {leaders.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="px-3 py-6 text-center text-gray-500">No entries yet</td>
+                    <td colSpan="5" className="px-3 py-6 text-center text-gray-500">No entries yet</td>
                   </tr>
                 )}
               </tbody>
@@ -140,7 +76,6 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* Action Button */}
         <div className="text-center mt-8">
           <button
             onClick={handlePlayAgain}

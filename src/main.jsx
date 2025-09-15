@@ -9,10 +9,9 @@ import App from './routes/App.jsx'
 import Game from './routes/Game.jsx'
 import StartScreen from './components/StartScreen.jsx'
 import JoinGame from './components/JoinGame.jsx'
-import TeamSetup from './components/TeamSetup.jsx'
+import PlayerSetup from './components/PlayerSetup.jsx'
 import Tutorial from './components/Tutorial.jsx'
-import TeamCompetition from './components/TeamCompetition.jsx'
-import TestTeamCompetition from './components/TestTeamCompetition.jsx'
+import IndividualCompetition from './components/IndividualCompetition.jsx'
 import DebugPage from './components/DebugPage.jsx'
 import FinalScore from './components/FinalScore.jsx'
 import Leaderboard from './routes/Leaderboard.jsx'
@@ -25,10 +24,9 @@ const router = createBrowserRouter([
                   { index: true, element: <StartScreen /> },
                   { path: 'join', element: <JoinGame /> },
                   { path: 'join/:roomId', element: <JoinGame /> },
-                  { path: 'team-setup', element: <TeamSetup /> },
+                  { path: 'player-setup', element: <PlayerSetup /> },
                   { path: 'tutorial', element: <Tutorial /> },
-                  { path: 'team-competition', element: <TeamCompetition /> },
-                  { path: 'test-team-competition', element: <TestTeamCompetition /> },
+                  { path: 'individual-competition', element: <IndividualCompetition /> },
                   { path: 'debug', element: <DebugPage /> },
                   { path: 'game', element: <Game /> },
                   { path: 'final-score', element: <FinalScore /> },

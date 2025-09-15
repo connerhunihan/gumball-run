@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createRoom, joinTeam, subscribeToRoom, generateRoomId } from '../lib/room.js'
+import { createRoom, joinRoom, subscribeToRoom, generateRoomId } from '../lib/room.js'
 
 export default function DebugPage() {
   const [roomId, setRoomId] = useState(null)
@@ -21,11 +21,11 @@ export default function DebugPage() {
         setStatus(`Room data updated: ${JSON.stringify(data, null, 2)}`)
       })
       
-      // Join team2 (Quote warriors)
-      setStatus('Joining team2...')
-      const newPlayerId = await joinTeam(newRoomId, 'team2', 'Test Player')
+      // Join room
+      setStatus('Joining room...')
+      const newPlayerId = await joinRoom(newRoomId, 'Test Player')
       setPlayerId(newPlayerId)
-      setStatus(`Joined team2 with playerId: ${newPlayerId}`)
+      setStatus(`Joined room with playerId: ${newPlayerId}`)
       
     } catch (error) {
       setStatus(`Error: ${error.message}`)

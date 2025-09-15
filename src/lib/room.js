@@ -28,18 +28,7 @@ export const createRoom = async (roomId) => {
       gameStarted: false,
       currentRound: 1
     },
-    teams: {
-      team1: {
-        name: 'Guestimators',
-        players: {},
-        score: 0
-      },
-      team2: {
-        name: 'Quote warriors', 
-        players: {},
-        score: 0
-      }
-    },
+    players: {},
     totalJoined: 0, // Track total number of users who have joined a team
     playersStarted: 0, // Track number of players who have clicked start
     totalVisitors: 0, // Track total number of users who have opened the URL
@@ -51,21 +40,28 @@ export const createRoom = async (roomId) => {
 }
 
 // Join a team in a room
-export const joinTeam = async (roomId, teamId, playerName) => {
-  const playerId = `${teamId}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
-  const playerRef = ref(database, `rooms/${roomId}/teams/${teamId}/players/${playerId}`)
+export const joinRoom = async (roomId, playerName) => {
+  const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+  const playerRef = ref(database, `rooms/${roomId}/players/${playerId}`)
   
   // Get current room data to increment totalJoined
   const roomRef = ref(database, `rooms/${roomId}`)
   const roomSnapshot = await get(roomRef)
   const roomData = roomSnapshot.val()
   
+  // Determine guessing method (50/50 split)
+  const players = Object.values(roomData?.players || {})
+  const manualCount = players.filter(p => p.guessingMethod === 'manual').length
+  const estimateCount = players.filter(p => p.guessingMethod === 'estimate').length
+  const guessingMethod = manualCount <= estimateCount ? 'manual' : 'estimate'
+
   await set(playerRef, {
     name: playerName,
     joinedAt: Date.now(),
     hasStarted: false, // Track if this player has clicked start
     currentMachine: generateGumballs(), // Each player gets their own machine
-    score: 0 // Individual player score
+    score: 0, // Individual player score
+    guessingMethod: guessingMethod
   })
   
   // Increment totalJoined counter
@@ -78,7 +74,7 @@ export const joinTeam = async (roomId, teamId, playerName) => {
 
 // Mark a player as started
 export const markPlayerStarted = async (roomId, playerId) => {
-  const playerRef = ref(database, `rooms/${roomId}/teams/${playerId.startsWith('team1_') ? 'team1' : 'team2'}/players/${playerId}`)
+  const playerRef = ref(database, `rooms/${roomId}/players/${playerId}`)
   
   // Mark this player as started
   await set(playerRef, {
@@ -99,7 +95,7 @@ export const markPlayerStarted = async (roomId, playerId) => {
 }
 
 // Submit a guess for a specific player
-export const submitGuess = async (roomId, playerId, guess, teamId) => {
+export const submitGuess = async (roomId, playerId, guess, confidence) => {
   const roomRef = ref(database, `rooms/${roomId}`)
   const roomSnapshot = await get(roomRef)
   const roomData = roomSnapshot.val()
@@ -108,11 +104,8 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
     throw new Error('Game not active')
   }
   
-  // Determine which team this player belongs to
-  const targetTeam = teamId || (playerId.startsWith('team1_') ? 'team1' : 'team2')
-  
   // Get the player's current machine
-  const playerRef = ref(database, `rooms/${roomId}/teams/${targetTeam}/players/${playerId}`)
+  const playerRef = ref(database, `rooms/${roomId}/players/${playerId}`)
   const playerSnapshot = await get(playerRef)
   const playerData = playerSnapshot.val()
   
@@ -121,7 +114,7 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
   }
   
   const playerMachine = playerData.currentMachine
-  const score = scoreForGuess(parseInt(guess), playerMachine.count)
+  const score = scoreForGuess(parseInt(guess), playerMachine.count, confidence)
   
   // Calculate accuracy for this guess (0-1 scale)
   const actualCount = playerMachine.count
@@ -152,16 +145,10 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
     currentMachine: generateGumballs() // Generate new machine for next round
   })
   
-  // Update team's total score
-  const newTeamScore = roomData.teams[targetTeam].score + score
-  const teamScoreRef = ref(database, `rooms/${roomId}/teams/${targetTeam}/score`)
-  await set(teamScoreRef, newTeamScore)
-  
   // Record the guess
   const guessRef = ref(database, `rooms/${roomId}/guesses/${Date.now()}`)
   await set(guessRef, {
     playerId,
-    teamId: targetTeam,
     playerName: playerData.name,
     guess: parseInt(guess),
     actualCount: playerMachine.count,
@@ -178,9 +165,8 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
   
   return { 
     score, 
-    newScore: newTeamScore, 
+    newScore: newPlayerScore, 
     actualCount: playerMachine.count, 
-    teamId: targetTeam,
     playerName: playerData.name
   }
 }
@@ -189,7 +175,7 @@ export const submitGuess = async (roomId, playerId, guess, teamId) => {
 export const subscribeToRoom = (roomId, callback) => {
   // Subscribe to the entire room for game state
   const roomRef = ref(database, `rooms/${roomId}`)
-  let gameUnsubscribe = onValue(roomRef, (snapshot) => {
+  return onValue(roomRef, (snapshot) => {
     const data = snapshot.val()
     if (data) {
       callback({
@@ -198,40 +184,18 @@ export const subscribeToRoom = (roomId, callback) => {
       })
     }
   })
-
-  // Subscribe specifically to teams for real-time player updates
-  const teamsRef = ref(database, `rooms/${roomId}/teams`)
-  let teamsUnsubscribe = onValue(teamsRef, (snapshot) => {
-    const teams = snapshot.val()
-    if (teams) {
-      callback({
-        teams,
-        _timestamp: Date.now()
-      })
-    }
-  })
-  
-  return () => {
-    gameUnsubscribe()
-    teamsUnsubscribe()
-  }
 }
 
 // Listen to team scores
 export const subscribeToScores = (roomId, callback) => {
-  const scoresRef = ref(database, `rooms/${roomId}/teams`)
+  const playersRef = ref(database, `rooms/${roomId}/players`)
   
-  const unsubscribe = onValue(scoresRef, (snapshot) => {
-    const data = snapshot.val()
-    if (data) {
-      callback({
-        team1Score: data.team1?.score || 0,
-        team2Score: data.team2?.score || 0
-      })
+  return onValue(playersRef, (snapshot) => {
+    const players = snapshot.val()
+    if (players) {
+      callback(players)
     }
   })
-  
-  return unsubscribe
 }
 
 // Check if game is still active
@@ -256,40 +220,15 @@ export const startGame = async (roomId) => {
   
   if (!roomData) return false
   
-  // Check if all visitors have joined teams and started
-  const visitors = Object.values(roomData.visitors || {})
-  const totalVisitors = visitors.length
-  
-  if (totalVisitors === 0) return false // No visitors yet
-  
-  // We now check player status directly instead of using visitor status
-  
-  // Get all players from both teams
-  const team1Players = Object.values(roomData.teams?.team1?.players || {})
-  const team2Players = Object.values(roomData.teams?.team2?.players || {})
-  const allPlayers = [...team1Players, ...team2Players]
-  
-  // Check if all players have clicked start
-  const allStarted = allPlayers.every(player => player.hasStarted)
-  if (!allStarted) {
-    console.log('Not all players have started:', {
-      team1: team1Players.map(p => ({ name: p.name, hasStarted: p.hasStarted })),
-      team2: team2Players.map(p => ({ name: p.name, hasStarted: p.hasStarted }))
-    })
-    return false
+  // Game starts when the number of players who have clicked "Start"
+  // equals the total number of players who have joined the room.
+  if (roomData.playersStarted === 0 || roomData.playersStarted < roomData.totalJoined) {
+    console.log(`Waiting for all players. ${roomData.playersStarted}/${roomData.totalJoined} ready.`);
+    return false;
   }
   
-  // Need at least one player from each team
-  if (team1Players.length === 0 || team2Players.length === 0) {
-    console.log('Missing players from a team:', {
-      team1Count: team1Players.length,
-      team2Count: team2Players.length
-    })
-    return false
-  }
-  
-    // Set new game end time when game actually starts
-    const newGameEndTime = Date.now() + (3 * 60 * 1000) // 3 minutes from now
+  // Set new game end time when game actually starts
+  const newGameEndTime = Date.now() + (3 * 60 * 1000) // 3 minutes from now
   const gameEndTimeRef = ref(database, `rooms/${roomId}/gameEndTime`)
   await set(gameEndTimeRef, newGameEndTime)
   
@@ -311,7 +250,6 @@ export const registerVisitor = async (roomId, visitorId) => {
     joinedAt: Date.now(),
     hasJoinedTeam: false,
     hasStarted: false,
-    teamId: null,
     playerId: null
   }
   
@@ -330,7 +268,7 @@ export const registerVisitor = async (roomId, visitorId) => {
 }
 
 // Update visitor status when they join a team
-export const updateVisitorStatus = async (roomId, visitorId, teamId, playerId) => {
+export const updateVisitorStatus = async (roomId, visitorId, playerId) => {
   const visitorRef = ref(database, `rooms/${roomId}/visitors/${visitorId}`)
   const visitorSnapshot = await get(visitorRef)
   const currentData = visitorSnapshot.val() || {}
@@ -338,7 +276,6 @@ export const updateVisitorStatus = async (roomId, visitorId, teamId, playerId) =
   await set(visitorRef, {
     ...currentData,
     hasJoinedTeam: true,
-    teamId: teamId,
     playerId: playerId
   })
 }
@@ -377,19 +314,8 @@ export const clearRoomState = async (roomId) => {
   
   if (roomData) {
     // Reset teams to empty state
-    const teamsRef = ref(database, `rooms/${roomId}/teams`)
-    await set(teamsRef, {
-      team1: {
-        name: 'Guestimators',
-        players: {},
-        score: 0
-      },
-      team2: {
-        name: 'Quote warriors', 
-        players: {},
-        score: 0
-      }
-    })
+    const playersRef = ref(database, `rooms/${roomId}/players`)
+    await set(playersRef, {})
     
     // Reset totalJoined counter
     const totalJoinedRef = ref(database, `rooms/${roomId}/totalJoined`)
@@ -402,8 +328,6 @@ export const clearRoomState = async (roomId) => {
     // Reset game state
     const stateRef = ref(database, `rooms/${roomId}/state`)
     await set(stateRef, {
-      team1Machine: generateGumballs(),
-      team2Machine: generateGumballs(),
       isActive: true,
       lastGuessTime: null,
       gameStarted: false

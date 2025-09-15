@@ -51,28 +51,37 @@ export function generateGumballs() {
   return { width, height, balls, count: balls.length }
 }
 
-export function scoreForGuess(trueCount, guess) {
+export function scoreForGuess(guess, trueCount, confidence = null) {
   const error = Math.abs(trueCount - guess)
   const percentageError = error / trueCount
   
+  let baseScore;
   // More sensitive scoring system with larger differences
   if (percentageError <= 0.02) { // Within 2%
-    return 100
+    baseScore = 100
   } else if (percentageError <= 0.05) { // Within 5%
-    return 80
+    baseScore = 80
   } else if (percentageError <= 0.10) { // Within 10%
-    return 60
+    baseScore = 60
   } else if (percentageError <= 0.15) { // Within 15%
-    return 40
+    baseScore = 40
   } else if (percentageError <= 0.25) { // Within 25%
-    return 20
+    baseScore = 20
   } else if (percentageError <= 0.40) { // Within 40%
-    return 10
+    baseScore = 10
   } else if (percentageError <= 0.60) { // Within 60%
-    return 5
+    baseScore = 5
   } else {
-    return Math.max(1, Math.round(5 / (1 + percentageError)))
+    baseScore = Math.max(1, Math.round(5 / (1 + percentageError)))
   }
+
+  // If confidence is provided, factor it into the score.
+  if (confidence !== null && confidence >= 0 && confidence <= 1) {
+    // Confidence acts as a multiplier. 100% confidence = full score. 50% = half score.
+    return Math.round(baseScore * confidence);
+  }
+
+  return baseScore;
 }
 
 

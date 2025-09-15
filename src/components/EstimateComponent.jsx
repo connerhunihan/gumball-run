@@ -1,55 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 
-export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualCount, particleCount }) {
-  const [confidence, setConfidence] = useState('Medium')
-  const [number, setNumber] = useState('')
-
-  // Cycle confidence levels only when actualCount changes (new round)
-  useEffect(() => {
-    if (actualCount) {
-      const levels = ['Low', 'Medium', 'High']
-      const randomIndex = Math.floor(Math.random() * levels.length)
-      setConfidence(levels[randomIndex])
-    }
+export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualCount }) {
+  const [confidence, setConfidence] = useState(50) // Confidence as a percentage (0-100)
+  
+  // Generate a plausible guess that is stable for the duration of the round
+  const plausibleGuess = useMemo(() => {
+    if (!actualCount) return 0
+    
+    // Generate a guess that's within a reasonable margin of the actual count
+    const errorMargin = 0.35 // Guess can be off by up to 35%
+    const randomError = (Math.random() - 0.5) * 2 * errorMargin // -0.35 to +0.35
+    return Math.max(1, Math.round(actualCount * (1 + randomError)))
   }, [actualCount])
 
-  // Use particle count if available, otherwise use actualCount
-  const currentCount = particleCount || actualCount
-
-  // Calculate confidence intervals based on actual count with more variation
-  const getConfidenceInterval = (actual, level) => {
-    if (!actual) return null
-    
-    // Add some randomness to make guesses vary more between rounds
-    const randomFactor = 0.9 + (Math.random() * 0.2) // Random between 0.9 and 1.1
-    
-    switch (level) {
-      case 'Low':
-        // Low confidence: 70-85% of actual with variation
-        return Math.round(actual * (0.7 + Math.random() * 0.15) * randomFactor)
-      case 'Medium':
-        // Medium confidence: 85-95% of actual with variation
-        return Math.round(actual * (0.85 + Math.random() * 0.1) * randomFactor)
-      case 'High':
-        // High confidence: 95-105% of actual with variation
-        return Math.round(actual * (0.95 + Math.random() * 0.1) * randomFactor)
-      default:
-        return Math.round(actual * randomFactor)
-    }
-  }
-
-  // Update number when confidence changes (if we have actual count)
-  useEffect(() => {
-    if (currentCount) {
-      const newNumber = getConfidenceInterval(currentCount, confidence)
-      setNumber(newNumber.toString())
-    }
-  }, [confidence, currentCount])
-
   const handleSubmit = () => {
-    if (number.trim() && !isSubmitting) {
-      onSubmitGuess(number, confidence)
-      setNumber('')
+    if (plausibleGuess && !isSubmitting) {
+      // Pass the guess and the confidence (as a 0-1 float)
+      onSubmitGuess(plausibleGuess.toString(), confidence / 100)
     }
   }
 
@@ -59,74 +26,44 @@ export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualC
     }
   }
 
-  // Get confidence color based on level
-  const getConfidenceColor = (level) => {
-    switch (level) {
-      case 'Low':
-        return 'bg-red-500'
-      case 'Medium':
-        return 'bg-yellow-400'
-      case 'High':
-        return 'bg-green-500'
-      default:
-        return 'bg-yellow-400'
-    }
-  }
-
-  // Get text color based on confidence level
-  const getTextColor = (level) => {
-    return level === 'Low' ? 'text-white' : 'text-black'
-  }
-
   return (
-    <div className="absolute bottom-4 right-4 flex flex-col items-center gap-2">
-      {/* Confidence tag */}
-      <div 
-        className={`${getConfidenceColor(confidence)} border-2 border-black flex items-center justify-center select-none`}
-        style={{
-          borderRadius: '4px',
-          width: '211px',
-          height: '61px',
-          boxShadow: '6px 6px 0px 0px #000000'
-        }}
-      >
-        <span 
-          className={`${getTextColor(confidence)} font-normal text-center`}
-          style={{ 
-            fontFamily: 'Lexend Exa, sans-serif',
-            fontSize: '32px',
-            fontWeight: '400',
-            letterSpacing: '-0.96px',
-            lineHeight: '44.8px'
-          }}
-        >
-          {confidence}
-        </span>
+    <div 
+      className="bg-white border-4 border-black p-4 rounded-2xl w-full flex flex-col items-center gap-4"
+      style={{ boxShadow: '8px 8px 0px 0px #000000' }}
+      onKeyPress={handleKeyPress}
+    >
+      <div className="text-center">
+        <p className="text-lg font-medium text-gray-600" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+          Suggested Guess
+        </p>
+        <p className="text-4xl font-bold text-black" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+          {plausibleGuess}
+        </p>
+      </div>
+      
+      <div className="w-full flex flex-col items-center gap-2">
+        <label className="text-lg font-medium text-black" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+          Confidence: {confidence}%
+        </label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={confidence}
+          onChange={(e) => setConfidence(parseInt(e.target.value))}
+          className="w-full h-4 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          disabled={isSubmitting}
+        />
       </div>
 
-      {/* Number tag */}
-      <div 
-        className="bg-white border-2 border-black flex items-center justify-center"
-        style={{
-          borderRadius: '4px',
-          width: '124px',
-          height: '61px',
-          boxShadow: '6px 6px 0px 0px #000000'
-        }}
+      <button
+        onClick={handleSubmit}
+        disabled={isSubmitting}
+        className="w-full bg-[#00f22a] border-4 border-black rounded-xl px-6 py-3 text-black font-bold text-2xl transition-all duration-200 hover:scale-105 disabled:bg-gray-400"
+        style={{ boxShadow: '4px 4px 0px 0px #000000' }}
       >
-        <div
-          className="w-full h-full text-center text-black flex items-center justify-center"
-          style={{ 
-            fontFamily: 'Lexend Exa, sans-serif',
-            fontSize: '32px',
-            fontWeight: '400',
-            letterSpacing: '-0.96px',
-            lineHeight: '44.8px'
-          }}
-        >
-          {number || '?'}
-        </div>
-      </div>
+        {isSubmitting ? 'Submitting...' : 'Submit'}
+      </button>
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import React from 'react'
 import TeamStats from './TeamStats.jsx'
 
-export default function StarScore({ score = 0, teamName = '', teamStats = { guessCount: 0, totalAccuracy: 0 } }) {
+export default function StarScore({ score = 0, teamName = '', playerStats = { guessCount: 0, totalAccuracy: 0 } }) {
+  const averageAccuracy = playerStats.guessCount > 0 ? playerStats.totalAccuracy / playerStats.guessCount : 0;
   return (
     <div className="relative">
       <svg width="293" height="323" viewBox="0 0 293 323" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -34,8 +35,8 @@ export default function StarScore({ score = 0, teamName = '', teamStats = { gues
       {/* Team Stats - positioned below team name */}
       <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 w-64">
         <TeamStats 
-          accuracy={teamStats.totalAccuracy} 
-          guessCount={teamStats.guessCount} 
+          accuracy={averageAccuracy} 
+          guessCount={playerStats.guessCount} 
         />
       </div>
     </div>
