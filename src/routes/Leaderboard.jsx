@@ -59,11 +59,11 @@ export default function Leaderboard() {
               <tbody>
                 {leaders.map((l, i) => (
                   <tr key={l.id || i} className="border-b border-gray-300">
-                    <td className="px-3 py-3 font-bold text-black">{i + 1}</td>
-                    <td className="px-3 py-3 text-black">{l.name}</td>
-                    <td className="px-3 py-3 font-bold text-black">{l.score}</td>
-                    <td className="px-3 py-3 text-black">{l.totalAccuracy ? `${Math.round(l.totalAccuracy / (l.guessCount || 1) * 100)}%` : 'N/A'}</td>
-                    <td className="px-3 py-3 text-black">{l.guessCount || 0}</td>
+                    <td className="text-left px-3 py-3 font-bold text-black">{i + 1}</td>
+                    <td className="text-left px-3 py-3 text-black">{l.name}</td>
+                    <td className="text-left px-3 py-3 font-bold text-black">{l.score}</td>
+                    <td className="text-left px-3 py-3 text-black">{l.totalAccuracy ? `${Math.round(l.totalAccuracy / (l.guessCount || 1) * 100)}%` : 'N/A'}</td>
+                    <td className="text-left px-3 py-3 text-black">{l.guessCount || 0}</td>
                   </tr>
                 ))}
                 {leaders.length === 0 && (

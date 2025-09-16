@@ -1,21 +1,35 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { subscribeToRoom, markPlayerStarted, startGame } from '../lib/room.js'
+import { scoreForGuess } from '../lib/gumballs.js'
 import GumballImage from './GumballImage.jsx'
 import GamePanel from './GamePanel.jsx'
 import StarScore from './StarScore.jsx'
-import EstimateComponent from './EstimateComponent.jsx'
+import EstimateDisplay from './EstimateDisplay.jsx'
+
+const TUTORIAL_GUMBALL_MACHINE = {
+  balls: Array.from({ length: 120 }, (_, i) => ({
+    // width=380, height=280. Radius=6. So padding=6
+    // Valid x: 6 to 374. Range = 368.
+    // Valid y: 6 to 274. Range = 268.
+    x: Math.random() * 368 + 6,
+    y: Math.random() * 268 + 6,
+    c: `hsl(${Math.random() * 360}, 80%, 60%)`,
+  })),
+  count: 120,
+};
+
 
 // A consistent layout component for each tutorial step
 const TutorialLayout = ({ title, description, children }) => (
-  <div className="flex flex-col items-center justify-center text-center w-full max-w-7xl min-h-[60vh]">
+  <div className="flex-1 flex flex-col items-center justify-center text-center w-full">
     <h1 className="text-black font-black text-5xl mb-4" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
       {title}
     </h1>
     <p className="text-black font-normal text-3xl mb-8 max-w-3xl">
       {description}
     </p>
-    <div className="flex justify-center items-center gap-16 w-full">
+    <div className="flex justify-center items-center gap-16 w-full px-16">
       {children}
     </div>
   </div>
@@ -29,9 +43,13 @@ export default function Tutorial() {
   const [step, setStep] = useState(1)
   const [roomData, setRoomData] = useState(null)
   const [hasPlayerStarted, setHasPlayerStarted] = useState(false)
+  const [testGuess, setTestGuess] = useState('')
+  const [testGuessResult, setTestGuessResult] = useState(null)
   
   const player = roomData?.players?.[playerId]
-  const players = Object.values(roomData?.players || {})
+  const players = roomData?.players 
+    ? Object.entries(roomData.players).map(([id, playerData]) => ({ id, ...playerData }))
+    : []
   const playersStarted = players.filter(p => p.hasStarted).length
   const totalJoined = players.length
   const guessingMethod = player?.guessingMethod
@@ -52,9 +70,24 @@ export default function Tutorial() {
     });
     return () => unsubscribe();
   }, [roomId, navigate, playerId, location.state?.fromHomepage]);
+  
+  // Effect to advance to the next step *after* the score has been set
+  useEffect(() => {
+    if (testGuessResult) {
+      handleNext();
+    }
+  }, [testGuessResult]);
 
   const handleNext = () => setStep(s => s + 1)
   
+  const handleTestGuess = () => {
+    if (testGuess.trim()) {
+      const score = scoreForGuess(parseInt(testGuess), TUTORIAL_GUMBALL_MACHINE.count)
+      setTestGuessResult({ score, guess: testGuess })
+      // handleNext() is now called by the useEffect
+    }
+  }
+
   const handleStartGame = async () => {
     if (!hasPlayerStarted && playerId) {
       setHasPlayerStarted(true);
@@ -82,8 +115,20 @@ export default function Tutorial() {
             title="Here’s how it works" 
             description="The goal is to guess how many gumballs are inside this yellow box."
           >
-            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[429px] h-[328px]">
-              <GumballImage count={120} width={380} height={280} />
+            <div className="flex flex-col items-center gap-4">
+              <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[429px] h-[328px]">
+                <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={380} height={280} />
+              </div>
+              <div className="bg-white border-4 border-black p-4 w-[429px] h-[80px] rounded-2xl">
+                <input
+                  type="number"
+                  placeholder="enter a guess"
+                  value={testGuess}
+                  onChange={e => setTestGuess(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleTestGuess()}
+                  className="w-full h-full text-center text-3xl font-medium outline-none"
+                />
+              </div>
             </div>
           </TutorialLayout>
         );
@@ -93,12 +138,22 @@ export default function Tutorial() {
             title="Here’s how it works" 
             description="You get points based on how close your guess is."
           >
-            <div className="flex-1 flex justify-end">
-              <StarScore score={1250} playerStats={{guessCount: 1, totalAccuracy: 0.95}} />
-            </div>
-            <div className="flex-1 flex justify-start">
-              <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[429px] h-[328px]">
-                <GumballImage count={120} width={380} height={280} />
+            <div className="flex flex-row items-center justify-center gap-16">
+              <StarScore score={testGuessResult?.score || 0} />
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[429px] h-[328px]">
+                    <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={380} height={280} />
+                  </div>
+                </div>
+                <div className="bg-gray-200 border-4 border-black p-4 w-[429px] h-[80px] rounded-2xl flex items-center justify-center">
+                  <span className="text-3xl font-medium text-gray-500">{testGuessResult?.guess}</span>
+                </div>
+                {testGuessResult && (
+                  <div className="bg-white p-2 border-2 border-black rounded-lg">
+                    +{testGuessResult.score} points! Actual was {TUTORIAL_GUMBALL_MACHINE.count}.
+                  </div>
+                )}
               </div>
             </div>
           </TutorialLayout>
@@ -106,7 +161,7 @@ export default function Tutorial() {
       case 3:
         return (
           <TutorialLayout 
-            title="Here’s how it works" 
+            title="Here's how it works" 
             description="You are competing against everyone else."
           >
             <div className="w-[575px] bg-white border-4 border-black rounded-2xl p-4">
@@ -115,7 +170,12 @@ export default function Tutorial() {
                 {players.map((p, i) => (
                   <li key={i} className="flex justify-between">
                     <span>{p.name}{p.id === playerId ? ' (You)' : ''}</span>
-                    <span>{i === 0 ? 1250 : 1100 - i * 200}</span>
+                    <span>
+                      {p.id === playerId 
+                        ? (testGuessResult?.score || 0) 
+                        : (p.score || 0)
+                      }
+                    </span>
                   </li>
                 ))}
               </ol>
@@ -126,29 +186,14 @@ export default function Tutorial() {
         return (
           <TutorialLayout 
             title="Here’s how it works" 
-            description="Some of you guess by hand, some of you evaluate a guess (with a confidence tag)."
+            description="Some of you guess by hand, some of you evaluate a guess."
           >
-            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[450px] h-[350px] flex flex-col items-center justify-between">
-              <GumballImage count={120} width={400} height={200} />
-              <div 
-                className="bg-white border-4 border-black p-4 w-full"
-                style={{
-                  borderRadius: '16px',
-                  boxShadow: '8px 8px 0px 0px #000000',
-                  height: '80px',
-                }}
-              >
-                <input
-                  type="number"
-                  placeholder="enter a number"
-                  className="w-full h-full text-center text-lg font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent"
-                  disabled
-                />
-              </div>
+            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[450px] h-[350px] flex flex-col items-center justify-center">
+              <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={386} height={286} />
             </div>
-            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[450px] h-[350px] flex flex-col items-center justify-around">
-              <GumballImage count={120} width={400} height={150} />
-              <EstimateComponent onSubmitGuess={() => {}} isSubmitting={true} actualCount={120} />
+            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[450px] h-[350px] relative">
+              <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={386} height={286} />
+              <EstimateDisplay confidence="Medium" guess="105" />
             </div>
           </TutorialLayout>
         );
@@ -156,28 +201,21 @@ export default function Tutorial() {
         return (
           <TutorialLayout 
             title="Here’s how it works"
-            description={guessingMethod === 'manual' ? "You will be guessing by hand." : "You will be evaluating a guess with a confidence tag."}
+            description={guessingMethod === 'manual' ? "You will be guessing by hand." : "You will be evaluating a guess."}
           >
-             <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[450px] h-[350px] flex flex-col items-center justify-between">
-              <GumballImage count={120} width={400} height={guessingMethod === 'manual' ? 200 : 150} />
-              {guessingMethod === 'manual' 
-                ? <div 
-                    className="bg-white border-4 border-black p-4 w-full"
-                    style={{
-                      borderRadius: '16px',
-                      boxShadow: '8px 8px 0px 0px #000000',
-                      height: '80px',
-                    }}
-                  >
-                    <input
-                      type="number"
-                      placeholder="enter a number"
-                      className="w-full h-full text-center text-lg font-medium text-black placeholder-gray-500 border-none outline-none bg-transparent"
-                    />
+             {guessingMethod === 'manual' 
+                ? (
+                  <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[450px] h-[350px]">
+                    <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={386} height={286} />
                   </div>
-                : <EstimateComponent onSubmitGuess={() => {}} isSubmitting={false} actualCount={120} />
+                )
+                : (
+                  <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[450px] h-[350px] relative">
+                    <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={386} height={286} />
+                    <EstimateDisplay confidence="Medium" guess="105" />
+                  </div>
+                )
               }
-            </div>
           </TutorialLayout>
         );
       case 6:
@@ -200,23 +238,38 @@ export default function Tutorial() {
     }
   }
 
+  const handleButtonClick = () => {
+    if (step === 1) {
+      handleTestGuess();
+    } else {
+      handleNext();
+    }
+  };
+
   return (
-    <div className="h-screen bg-[#8eebff] flex flex-col items-center justify-center p-4 overflow-hidden">
-      {renderStep()}
-      <div className="fixed bottom-8 flex gap-4">
-        {step < 6 ? (
-          <button onClick={handleNext} className="border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl" style={{backgroundColor: '#FF4910'}}>
-            Next
-          </button>
-        ) : (
-          <button 
-            onClick={handleStartGame} 
-            className="bg-[#00f22a] border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl disabled:bg-gray-500 disabled:cursor-not-allowed" 
-            disabled={hasPlayerStarted}
-          >
-            {hasPlayerStarted ? `Waiting... ${playersStarted}/${totalJoined} Ready` : 'Start'}
-          </button>
-        )}
+    <div className="h-full w-full bg-[#8eebff] flex flex-col p-4 overflow-hidden">
+      <TutorialLayout title={renderStep().props.title} description={renderStep().props.description}>
+        {renderStep().props.children}
+      </TutorialLayout>
+      <div className="w-full px-8 pb-4">
+        <div className="relative w-full max-w-7xl mx-auto h-16">
+          {step < 6 && (
+            <button onClick={handleButtonClick} className="absolute right-0 bottom-0 border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl" style={{backgroundColor: '#FF4910'}}>
+              Next
+            </button>
+          )}
+          {step === 6 && (
+            <div className="flex justify-center">
+              <button 
+                onClick={handleStartGame} 
+                className="bg-[#00f22a] border-4 border-black rounded-2xl px-8 py-4 text-black font-black text-2xl disabled:bg-gray-500 disabled:cursor-not-allowed" 
+                disabled={hasPlayerStarted}
+              >
+                {hasPlayerStarted ? `Waiting... ${playersStarted}/${totalJoined} Ready` : 'Start'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -61,7 +61,9 @@ export const joinRoom = async (roomId, playerName) => {
     hasStarted: false, // Track if this player has clicked start
     currentMachine: generateGumballs(), // Each player gets their own machine
     score: 0, // Individual player score
-    guessingMethod: guessingMethod
+    guessingMethod: guessingMethod,
+    guessCount: 0,
+    totalAccuracy: 0
   })
   
   // Increment totalJoined counter

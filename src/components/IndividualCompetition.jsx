@@ -5,6 +5,7 @@ import TimerDisplay from './TimerDisplay.jsx'
 import StarScore from './StarScore.jsx'
 import { subscribeToRoom, submitGuess, isGameActive, getRemainingTime } from '../lib/room.js'
 import EstimateComponent from './EstimateComponent.jsx'
+import TeamStats from './TeamStats.jsx'
 
 export default function IndividualCompetition() {
   const navigate = useNavigate()
@@ -51,11 +52,12 @@ export default function IndividualCompetition() {
     // Update current player's stats and gumball machine
     const playerData = roomData.players?.[playerId]
     if (playerData) {
-      setGumballCount(playerData.currentMachine?.count || 50)
+      setGumballCount(playerData.currentMachine?.count || 50) // Fallback for safety
       setPlayerStats({
         guessCount: playerData.guessCount || 0,
         totalAccuracy: playerData.totalAccuracy || 0,
-        score: playerData.score || 0
+        score: playerData.score || 0,
+        currentMachine: playerData.currentMachine
       })
     }
     
@@ -71,11 +73,8 @@ export default function IndividualCompetition() {
       // Create a stable list of players to pass in state
       const finalPlayers = Object.values(roomData.players).sort((a, b) => b.score - a.score)
       
-      // Save scores to localStorage
-      const leaders = JSON.parse(localStorage.getItem('leaders') || '[]')
-      const newLeaders = [...leaders, ...finalPlayers]
-      newLeaders.sort((a, b) => b.score - a.score)
-      localStorage.setItem('leaders', JSON.stringify(newLeaders.slice(0, 50)))
+      // Overwrite the global leaderboard with the results of the current game.
+      localStorage.setItem('leaders', JSON.stringify(finalPlayers))
 
       navigate('/final-score', { 
         state: { 
@@ -136,45 +135,53 @@ export default function IndividualCompetition() {
   return (
     <div className="h-screen bg-[#8eebff] flex flex-col items-center justify-center p-4 overflow-hidden">
       
-      <div className="flex gap-8 max-w-6xl w-full">
-        <StarScore score={playerStats.score} playerStats={playerStats} />
+      <div className="flex items-center gap-8 max-w-6xl w-full relative">
+        <StarScore score={playerStats.score} />
 
         <div className="flex-1 flex flex-col items-center relative">
           <div className="w-[400px]">
             <div className="text-center relative">
-              <div className="h-[40px] mb-8">
-                <div className="float-right">
-                  <TimerDisplay timeLeft={timeLeft} />
-                </div>
+              <div className="h-[40px] mb-2">
               </div>
               
               <div 
-                className="bg-[#ffff00] border-4 border-black p-4 mb-4 relative overflow-hidden mt-8"
+                className="bg-[#ffff00] border-4 border-black p-2 mb-2 relative overflow-hidden"
                 style={{
                   borderRadius: '32px',
                   boxShadow: '8px 8px 0px 0px #000000',
-                  height: '300px',
+                  height: '250px',
                   width: '400px'
                 }}
               >
                 <div className="absolute inset-0">
                   <GumballImage
                     key={imageKey}
-                    count={gumballCount}
+                    machine={playerStats.currentMachine}
                     width={400}
-                    height={300}
+                    height={250}
                   />
                 </div>
               </div>
               
-              {roomData.players?.[playerId]?.guessingMethod === 'manual' ? (
+              {/* Estimate component - positioned outside yellow box with higher z-index */}
+              {roomData.players?.[playerId]?.guessingMethod === 'estimate' && (
+                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10">
+                  <EstimateComponent 
+                    onSubmitGuess={handleSubmitGuess}
+                    isSubmitting={isSubmitting}
+                    actualCount={gumballCount}
+                  />
+                </div>
+              )}
+              
+              <div className="w-[400px] mt-2 flex flex-col items-center gap-2">
+                {/* Input element - show for ALL users */}
                 <div 
-                  className="bg-white border-4 border-black p-4"
+                  className="bg-white border-4 border-black p-2 w-full"
                   style={{
                     borderRadius: '16px',
                     boxShadow: '8px 8px 0px 0px #000000',
-                    height: '80px',
-                    width: '400px'
+                    height: '60px',
                   }}
                 >
                   <input
@@ -197,14 +204,12 @@ export default function IndividualCompetition() {
                     min={1}
                   />
                 </div>
-              ) : (
-                <EstimateComponent
-                  onSubmitGuess={handleSubmitGuess}
-                  isSubmitting={isSubmitting}
-                  actualCount={gumballCount}
-                  particleCount={gumballCount}
+
+                <TeamStats 
+                  accuracy={playerStats.guessCount > 0 ? playerStats.totalAccuracy / playerStats.guessCount : 0}
+                  guessCount={playerStats.guessCount}
                 />
-              )}
+              </div>
             </div>
           </div>
 
@@ -227,16 +232,25 @@ export default function IndividualCompetition() {
           )}
         </div>
 
-        <div className="w-[300px] bg-white border-4 border-black rounded-2xl p-4">
+        <div className="w-[400px] bg-white border-4 border-black rounded-2xl p-4">
           <h2 className="text-2xl font-bold text-center mb-4">Leaderboard</h2>
-          <ol className="list-decimal list-inside">
+          <div className="space-y-2">
             {leaderboard.map((player, index) => (
-              <li key={player.id || index} className="flex justify-between">
-                <span>{player.name}</span>
-                <span>{player.score}</span>
-              </li>
+              <div key={player.id || index} className="flex items-center justify-between text-sm">
+                <span className="text-left">{index + 1}. {player.name}</span>
+                <div className="flex gap-3 text-xs text-left">
+                  <span className="w-12">Score: {player.score}</span>
+                  <span className="w-12">Acc: {Math.round((player.totalAccuracy || 0) / Math.max(1, player.guessCount || 1) * 100)}%</span>
+                  <span className="w-8">G: {player.guessCount || 0}</span>
+                </div>
+              </div>
             ))}
-          </ol>
+          </div>
+        </div>
+        
+        {/* Timer positioned to align with leaderboard right edge */}
+        <div className="absolute top-0" style={{ right: '0px' }}>
+          <TimerDisplay timeLeft={timeLeft} />
         </div>
       </div>
     </div>
