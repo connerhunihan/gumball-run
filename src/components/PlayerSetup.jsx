@@ -60,6 +60,7 @@ export default function PlayerSetup() {
       ? 'https://connerhunihan.github.io/gumball-run'
       : window.location.origin
     const roomUrl = `${baseUrl}/join/${roomId}`
+    console.log('Copying URL:', roomUrl) // Debug log
     try {
       await navigator.clipboard.writeText(roomUrl)
       setShowCopySuccess(true)
