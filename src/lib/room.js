@@ -135,7 +135,9 @@ export const submitGuess = async (roomId, playerId, guess, confidence) => {
   })
   
   // Update player's stats
-  const newPlayerScore = (playerData.score || 0) + score
+  // Only count score if accuracy is at least 80%
+  const scoreToAdd = accuracy >= 0.8 ? score : 0
+  const newPlayerScore = (playerData.score || 0) + scoreToAdd
   const newGuessCount = (playerData.guessCount || 0) + 1
   const newTotalAccuracy = (playerData.totalAccuracy || 0) + accuracy
   
@@ -154,7 +156,7 @@ export const submitGuess = async (roomId, playerId, guess, confidence) => {
     playerName: playerData.name,
     guess: parseInt(guess),
     actualCount: playerMachine.count,
-    score,
+    score: scoreToAdd,
     timestamp: Date.now()
   })
   
