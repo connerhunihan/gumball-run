@@ -56,7 +56,10 @@ export default function PlayerSetup() {
   }
 
   const copyRoomUrl = async () => {
-    const roomUrl = `${window.location.origin}/join/${roomId}`
+    const baseUrl = import.meta.env.PROD 
+      ? 'https://connerhunihan.github.io/gumball-run'
+      : window.location.origin
+    const roomUrl = `${baseUrl}/join/${roomId}`
     try {
       await navigator.clipboard.writeText(roomUrl)
       setShowCopySuccess(true)
