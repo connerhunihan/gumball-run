@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import GumballImage from './GumballImage.jsx'
 import ScoreCounter from './ScoreCounter.jsx'
@@ -9,7 +9,7 @@ import { subscribeToRoom, markPlayerStarted, startGame } from '../lib/room.js'
 import { scoreForGuess, generateGumballs } from '../lib/gumballs.js'
 import EstimateDisplay from './EstimateDisplay.jsx' // Assuming this is used somewhere
 
-const TutorialLobby = ({ players, onStart, isReady, playerId, hasStarted }) => {
+const TutorialLobby = memo(({ players, onStart, isReady, playerId, hasStarted }) => {
   console.log('TutorialLobby rendering with players:', players)
   const startedCount = players.filter(p => p.hasStarted).length
   const totalCount = players.length
@@ -30,13 +30,13 @@ const TutorialLobby = ({ players, onStart, isReady, playerId, hasStarted }) => {
       <button
         onClick={onStart}
         disabled={!isReady}
-        className="w-full bg-[#FFC700] border-2 border-black rounded-lg py-3 text-xl font-bold transition-all duration-200 disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-yellow-500"
+        className="w-full bg-[#00F22A] border-2 border-black rounded-lg py-3 text-xl font-bold transition-all duration-200 disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-green-500"
       >
         {hasStarted ? `${startedCount} of ${totalCount} players joined` : 'Start Game'}
       </button>
     </div>
   )
-}
+})
 
 // A consistent layout component for each tutorial step
 const TutorialLayout = ({ title, description, children }) => (
@@ -53,7 +53,7 @@ const TutorialLayout = ({ title, description, children }) => (
   </div>
 );
 
-function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handleTestGuess, testGuessResult, tutorialGumballMachine }) {
+const TutorialStep = memo(function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handleTestGuess, testGuessResult, tutorialGumballMachine }) {
   switch (step) {
     case 1:
       return (
@@ -148,7 +148,7 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
     default:
       return <div>Unknown step</div>
   }
-}
+})
 
 const Tutorial = () => {
   const [step, setStep] = useState(1)
@@ -209,10 +209,12 @@ const Tutorial = () => {
 
   const players = roomData ? Object.entries(roomData.players || {}).map(([id, data]) => ({ id, ...data })) : []
   
-  // Debug logging for players
+  // Debug logging for players and room data
   useEffect(() => {
     console.log('Tutorial players updated:', players)
-  }, [players])
+    console.log('Tutorial roomData:', roomData)
+    console.log('Tutorial roomData.players:', roomData?.players)
+  }, [players, roomData])
 
   // This effect will listen for changes and navigate when the game starts
   useEffect(() => {
