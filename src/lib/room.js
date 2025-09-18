@@ -78,9 +78,18 @@ export const joinRoom = async (roomId, playerName) => {
 export const markPlayerStarted = async (roomId, playerId) => {
   const playerRef = ref(database, `rooms/${roomId}/players/${playerId}`)
   
+  // Get current player data first
+  const playerSnapshot = await get(playerRef)
+  const currentPlayerData = playerSnapshot.val()
+  
+  if (!currentPlayerData) {
+    console.error('Player not found:', playerId)
+    return 0
+  }
+  
   // Mark this player as started
   await set(playerRef, {
-    ...(await get(playerRef)).val(),
+    ...currentPlayerData,
     hasStarted: true
   })
   
@@ -93,6 +102,7 @@ export const markPlayerStarted = async (roomId, playerId) => {
   const playersStartedRef = ref(database, `rooms/${roomId}/playersStarted`)
   await set(playersStartedRef, newPlayersStarted)
   
+  console.log(`Player ${playerId} started. Total started: ${newPlayersStarted}/${roomData?.totalJoined || 0}`)
   return newPlayersStarted
 }
 
@@ -182,6 +192,12 @@ export const subscribeToRoom = (roomId, callback) => {
   return onValue(roomRef, (snapshot) => {
     const data = snapshot.val()
     if (data) {
+      console.log('Room data updated:', {
+        playersCount: Object.keys(data.players || {}).length,
+        players: Object.keys(data.players || {}),
+        totalJoined: data.totalJoined,
+        playersStarted: data.playersStarted
+      })
       callback({
         ...data,
         _timestamp: Date.now()
@@ -222,7 +238,16 @@ export const startGame = async (roomId) => {
   const roomSnapshot = await get(roomRef)
   const roomData = roomSnapshot.val()
   
-  if (!roomData) return false
+  if (!roomData) {
+    console.log('No room data found for startGame')
+    return false
+  }
+  
+  console.log('startGame called. Room data:', {
+    playersStarted: roomData.playersStarted,
+    totalJoined: roomData.totalJoined,
+    players: Object.keys(roomData.players || {}).length
+  })
   
   // Game starts when the number of players who have clicked "Start"
   // equals the total number of players who have joined the room.
