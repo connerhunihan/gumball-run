@@ -42,36 +42,17 @@ export default function FinalScore() {
                 {player.score}
               </div>
               
-              {/* Player name */}
-              <div className="flex-1 px-12">
-                <div className="text-2xl text-black" style={{
-                  fontFamily: 'Lexend Exa, sans-serif',
-                  letterSpacing: '0px',
-                  lineHeight: '44.8px'
-                }}>
+              {/* Player Name */}
+              <div className="flex-grow text-center">
+                <h2 className="text-4xl font-semibold leading-tight tracking-tight text-black" style={{ fontFamily: "'Lexend Exa', sans-serif" }}>
                   {player.name}
-                </div>
+                </h2>
               </div>
-              
-              {/* Stats tags and method */}
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  {player.guessingMethod === 'manual' ? (
-                    <svg width="48" height="48" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M29.4023 6.5C30.521 4.56276 33.2641 4.50223 34.4844 6.31836L34.5977 6.5L55.3828 42.5C56.5375 44.5 55.0936 47 52.7842 47H11.2158C8.90644 47 7.46254 44.5 8.61719 42.5L29.4023 6.5Z" fill="#FF4910" stroke="white" strokeWidth="2"/>
-                    </svg>
-                  ) : (
-                    <div className="w-12 h-12 bg-blue-500 rounded-full border-2 border-black"></div>
-                  )}
-                  <span className="text-2xl text-black" style={{
-                    fontFamily: 'Lexend Exa, sans-serif',
-                    letterSpacing: '0px',
-                    lineHeight: '44.8px'
-                  }}>
-                    {player.guessingMethod === 'manual' ? 'MANUAL' : 'ESTIMATE'}
-                  </span>
-                </div>
-                <div className="bg-[#e2ff33] border-2 border-black rounded px-4 py-2">
+
+              {/* Stats Tags */}
+              <div className="flex items-center gap-4">
+                {/* Accuracy Tag */}
+                <div className="bg-yellow-400 border-2 border-black rounded-md px-4 py-2 flex items-center justify-center">
                   <span className="text-black text-xl font-normal" style={{
                     fontFamily: 'Lexend Exa, sans-serif',
                     letterSpacing: '-2.24px',

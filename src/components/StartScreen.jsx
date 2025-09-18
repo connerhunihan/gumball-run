@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import ParticleSimulationWrapper from './ParticleSimulation.jsx'
 import RoomNavigation from './RoomNavigation.jsx'
 import { generateRoomId, createRoom, deleteRoom } from '../lib/room.js'
+import { getOrCreateActiveRoom } from '../lib/room'
 
 export default function StartScreen() {
   const navigate = useNavigate()
@@ -12,6 +13,20 @@ export default function StartScreen() {
 
   const handleShowInstructions = () => {
     setScreen('instructions')
+  }
+
+  const handlePlay = async () => {
+    const storedRoomId = sessionStorage.getItem('joinRoomId')
+    
+    if (storedRoomId) {
+      console.log('Found storedRoomId, navigating to player-setup:', storedRoomId)
+      sessionStorage.removeItem('joinRoomId') // Clean up after use
+      navigate('/player-setup', { state: { roomId: storedRoomId } })
+    } else {
+      console.log('No storedRoomId, creating a new room.')
+      const newRoomId = await getOrCreateActiveRoom()
+      navigate('/player-setup', { state: { roomId: newRoomId, isHost: true } })
+    }
   }
 
   const handleCreateRoom = async () => {

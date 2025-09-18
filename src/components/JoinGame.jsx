@@ -1,71 +1,28 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { roomExists, registerVisitor } from '../lib/room.js'
+import { useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 
+// This component now acts as a gateway. It captures the roomId from the URL,
+// stores it in sessionStorage, and then redirects to the homepage.
+// The homepage component will then handle the logic for joining the room.
 export default function JoinGame() {
-  const navigate = useNavigate()
   const { roomId } = useParams()
-  const location = useLocation()
-  const [status, setStatus] = useState('Verifying room...')
-  const [error, setError] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    const verifyAndJoin = async () => {
-      try {
-        const exists = await roomExists(roomId)
-        if (exists) {
-          setStatus('Room found! Joining...')
-          const newVisitorId = `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
-          await registerVisitor(roomId, newVisitorId)
-          
-          // Redirect to player setup with the roomId
-          navigate('/player-setup', {
-            state: {
-              roomId: roomId,
-              visitorId: newVisitorId,
-              fromHomepage: location.state?.fromHomepage || false
-            },
-            replace: true // Replace the history entry so user can't go back to this page
-          })
-        } else {
-          setError('Room not found. The link may have expired or is invalid.')
-        }
-      } catch (err) {
-        setError('An error occurred while trying to join the room.')
-        console.error(err)
-      }
-    }
-    
     if (roomId) {
-      verifyAndJoin()
+      console.log('Join link clicked. Storing roomId:', roomId)
+      sessionStorage.setItem('joinRoomId', roomId)
+      navigate('/')
     } else {
-      setError('No Room ID provided.')
+      console.warn('No roomId found in URL, redirecting to home.')
+      navigate('/')
     }
-  }, [roomId, navigate, location.state])
+  }, [roomId, navigate])
 
   return (
     <div className="h-screen bg-[#8eebff] flex items-center justify-center">
-      <div className="text-center">
-        {error ? (
-          <>
-            <div className="text-red-600 text-xl mb-4" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-              {error}
-            </div>
-            <button
-              onClick={() => navigate('/')}
-              className="bg-white border-4 border-black rounded-xl px-6 py-3 text-black font-bold text-lg"
-            >
-              Go Back
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="text-black text-2xl mb-4" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
-              {status}
-            </div>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto"></div>
-          </>
-        )}
+      <div className="text-black text-2xl" style={{ fontFamily: 'Lexend Exa, sans-serif' }}>
+        Joining game...
       </div>
     </div>
   )

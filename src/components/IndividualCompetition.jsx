@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import GumballImage from './GumballImage.jsx'
 import TimerDisplay from './TimerDisplay.jsx'
 import StarScore from './StarScore.jsx'
-import { subscribeToRoom, submitGuess, isGameActive, getRemainingTime } from '../lib/room.js'
+import { subscribeToRoom, submitGuess, isGameActive, getRemainingTime, submitHighScore } from '../lib/room.js'
 import EstimateComponent from './EstimateComponent.jsx'
 import TeamStats from './TeamStats.jsx'
 
@@ -73,8 +73,11 @@ export default function IndividualCompetition() {
       // Create a stable list of players to pass in state
       const finalPlayers = Object.values(roomData.players).sort((a, b) => b.score - a.score)
       
-      // Overwrite the global leaderboard with the results of the current game.
-      localStorage.setItem('leaders', JSON.stringify(finalPlayers))
+      // Submit the current player's score to the persistent leaderboard
+      const myPlayerData = roomData.players?.[playerId]
+      if (myPlayerData) {
+        submitHighScore(myPlayerData)
+      }
 
       navigate('/final-score', { 
         state: { 

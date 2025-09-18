@@ -29,16 +29,16 @@ export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualC
     let errorMargin
     switch (randomLevel) {
       case 'High':
-        errorMargin = 0.05 // 95% accurate (within 5%)
+        errorMargin = 0.03 // within 3%
         break
       case 'Medium':
-        errorMargin = 0.075 // 90-95% accurate (within 7.5%)
+        errorMargin = 0.08 // within 8%
         break
       case 'Low':
-        errorMargin = 0.15 // Sub 90% accurate (within 15%)
+        errorMargin = 0.15 // within 15%
         break
       default:
-        errorMargin = 0.075
+        errorMargin = 0.08
     }
 
     const randomError = (Math.random() - 0.5) * 2 * errorMargin

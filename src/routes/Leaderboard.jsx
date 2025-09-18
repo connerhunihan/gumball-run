@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-function loadLeaders() {
-  try {
-    return JSON.parse(localStorage.getItem('leaders') || '[]')
-  } catch {
-    return []
-  }
-}
+import { getLeaderboard } from '../lib/room'
 
 export default function Leaderboard() {
   const navigate = useNavigate()
   const [leaders, setLeaders] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    setLeaders(loadLeaders())
+    const unsubscribe = getLeaderboard((data) => {
+      setLeaders(data)
+      setIsLoading(false)
+    });
+    // Cleanup subscription on component unmount
+    return () => unsubscribe();
   }, [])
 
   const handlePlayAgain = () => {
@@ -57,16 +56,21 @@ export default function Leaderboard() {
                 </tr>
               </thead>
               <tbody>
-                {leaders.map((l, i) => (
-                  <tr key={l.id || i} className="border-b border-gray-300">
-                    <td className="text-left px-3 py-3 font-bold text-black">{i + 1}</td>
-                    <td className="text-left px-3 py-3 text-black">{l.name}</td>
-                    <td className="text-left px-3 py-3 font-bold text-black">{l.score}</td>
-                    <td className="text-left px-3 py-3 text-black">{l.totalAccuracy ? `${Math.round(l.totalAccuracy / (l.guessCount || 1) * 100)}%` : 'N/A'}</td>
-                    <td className="text-left px-3 py-3 text-black">{l.guessCount || 0}</td>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="5" className="px-3 py-6 text-center text-gray-500">Loading...</td>
                   </tr>
-                ))}
-                {leaders.length === 0 && (
+                ) : leaders.length > 0 ? (
+                  leaders.map((l, i) => (
+                    <tr key={l.id || i} className="border-b border-gray-300">
+                      <td className="text-left px-3 py-3 font-bold text-black">{i + 1}</td>
+                      <td className="text-left px-3 py-3 text-black">{l.name}</td>
+                      <td className="text-left px-3 py-3 font-bold text-black">{l.score}</td>
+                      <td className="text-left px-3 py-3 text-black">{l.totalAccuracy ? `${Math.round(l.totalAccuracy / (l.guessCount || 1) * 100)}%` : 'N/A'}</td>
+                      <td className="text-left px-3 py-3 text-black">{l.guessCount || 0}</td>
+                    </tr>
+                  ))
+                ) : (
                   <tr>
                     <td colSpan="5" className="px-3 py-6 text-center text-gray-500">No entries yet</td>
                   </tr>

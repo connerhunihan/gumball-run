@@ -3,7 +3,10 @@ import {
   set, 
   get, 
   onValue,
-  remove
+  remove,
+  query,
+  orderByChild,
+  limitToLast
 } from 'firebase/database'
 import { database } from './firebase.js'
 import { generateGumballs, scoreForGuess } from './gumballs.js'
@@ -17,7 +20,7 @@ export const generateRoomId = () => {
 export const createRoom = async (roomId) => {
   const roomRef = ref(database, `rooms/${roomId}`)
   const now = Date.now()
-  const gameEndTime = now + (3 * 60 * 1000) // 3 minutes from now
+  const gameEndTime = now + (2 * 60 * 1000) // 2 minutes from now
   
   const roomData = {
     createdAt: now,
@@ -49,11 +52,8 @@ export const joinRoom = async (roomId, playerName) => {
   const roomSnapshot = await get(roomRef)
   const roomData = roomSnapshot.val()
   
-  // Determine guessing method (50/50 split)
-  const players = Object.values(roomData?.players || {})
-  const manualCount = players.filter(p => p.guessingMethod === 'manual').length
-  const estimateCount = players.filter(p => p.guessingMethod === 'estimate').length
-  const guessingMethod = manualCount <= estimateCount ? 'manual' : 'estimate'
+  // All players will use the estimate method in this version
+  const guessingMethod = 'estimate'
 
   await set(playerRef, {
     name: playerName,
@@ -232,7 +232,7 @@ export const startGame = async (roomId) => {
   }
   
   // Set new game end time when game actually starts
-  const newGameEndTime = Date.now() + (3 * 60 * 1000) // 3 minutes from now
+  const newGameEndTime = Date.now() + (2 * 60 * 1000) // 2 minutes from now
   const gameEndTimeRef = ref(database, `rooms/${roomId}/gameEndTime`)
   await set(gameEndTimeRef, newGameEndTime)
   
@@ -359,4 +359,61 @@ export const getOrCreateActiveRoom = async () => {
   const newRoomId = generateRoomId()
   await createRoom(newRoomId)
   return newRoomId
+}
+
+// --- Persistent Leaderboard Functions ---
+
+// Gets a unique user ID from local storage, or creates one.
+export const getLocalUserId = () => {
+  let userId = localStorage.getItem('gumballUserId');
+  if (!userId) {
+    userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    localStorage.setItem('gumballUserId', userId);
+  }
+  return userId;
+}
+
+// Submit a score to the global leaderboard
+export const submitHighScore = async (playerData) => {
+  if (!playerData || !playerData.name) {
+    console.error("Invalid player data for high score submission.");
+    return;
+  }
+
+  const userId = getLocalUserId();
+  const leaderboardRef = ref(database, `leaderboard/${userId}`);
+  
+  const snapshot = await get(leaderboardRef);
+  const existingScore = snapshot.val()?.score || 0;
+
+  if (playerData.score > existingScore) {
+    await set(leaderboardRef, {
+      name: playerData.name, // Use the name from the current game
+      score: playerData.score,
+      guessCount: playerData.guessCount,
+      totalAccuracy: playerData.totalAccuracy,
+      timestamp: Date.now(),
+    });
+    console.log(`New high score for ${playerData.name} (${userId}): ${playerData.score}`);
+  } else {
+    console.log(`Score of ${playerData.score} is not higher than existing score of ${existingScore}.`);
+  }
+}
+
+// Get the global leaderboard
+export const getLeaderboard = (callback) => {
+  const leaderboardRef = ref(database, 'leaderboard');
+  // Query to get top 100 scores, ordered by score descending
+  const topScoresQuery = query(leaderboardRef, orderByChild('score'), limitToLast(100));
+
+  return onValue(topScoresQuery, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      // Firebase returns in ascending order, so we reverse for display
+      const sortedData = Object.values(data).sort((a, b) => b.score - a.score);
+      callback(sortedData);
+    } else {
+      callback([]);
+    }
+  });
 }

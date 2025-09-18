@@ -5,13 +5,20 @@ import { createRoom, joinRoom, generateRoomId, updateVisitorStatus } from '../li
 export default function PlayerSetup() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { fromHomepage, roomId: existingRoomId, visitorId } = location.state || {}
+  const { fromHomepage, roomId: existingRoomId, visitorId, isHost } = location.state || {}
   
   const [playerName, setPlayerName] = useState('')
   const [isCreatingRoom, setIsCreatingRoom] = useState(false)
   const [showCopySuccess, setShowCopySuccess] = useState(false)
   const [roomId, setRoomId] = useState(existingRoomId)
   
+  useEffect(() => {
+    if (!roomId) {
+      console.error("No roomId provided to PlayerSetup, returning to home.")
+      navigate('/')
+    }
+  }, [roomId, navigate])
+
   const handleNameEntry = async () => {
     if (playerName.trim() !== '') {
       const trimmedName = playerName.trim()
@@ -38,7 +45,8 @@ export default function PlayerSetup() {
           state: { 
             roomId: currentRoomId,
             playerId: newPlayerId,
-            fromHomepage: fromHomepage
+            fromHomepage: fromHomepage,
+            isHost: isHost // Pass isHost to the tutorial
           } 
         })
 
@@ -119,6 +127,22 @@ export default function PlayerSetup() {
           {isCreatingRoom ? 'Creating...' : 'Continue'}
         </button>
       </div>
+
+      {isHost && (
+        <div className="mt-8 text-center">
+          <button
+            onClick={copyRoomUrl}
+            className="bg-green-500 border-2 border-black rounded-lg px-6 py-2 text-lg font-bold text-white transition-all hover:bg-green-600"
+          >
+            Copy Invite Link
+          </button>
+          {showCopySuccess && (
+            <div className="mt-2 text-green-700 font-semibold">
+              Link Copied!
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
