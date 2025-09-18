@@ -9,8 +9,10 @@ import { subscribeToRoom, markPlayerStarted, startGame } from '../lib/room.js'
 import { scoreForGuess, generateGumballs } from '../lib/gumballs.js'
 import EstimateDisplay from './EstimateDisplay.jsx' // Assuming this is used somewhere
 
-const TutorialLobby = memo(({ players, onStart, isReady, playerId, hasStarted }) => {
+const TutorialLobby = ({ players, onStart, isReady, playerId, hasStarted }) => {
   console.log('TutorialLobby rendering with players:', players)
+  console.log('TutorialLobby players length:', players.length)
+  console.log('TutorialLobby players details:', players.map(p => ({ id: p.id, name: p.name })))
   const startedCount = players.filter(p => p.hasStarted).length
   const totalCount = players.length
   
@@ -36,7 +38,7 @@ const TutorialLobby = memo(({ players, onStart, isReady, playerId, hasStarted })
       </button>
     </div>
   )
-})
+}
 
 // A consistent layout component for each tutorial step
 const TutorialLayout = ({ title, description, children }) => (
@@ -212,9 +214,10 @@ const Tutorial = () => {
   useEffect(() => {
     if (roomData?.players) {
       const playersList = Object.entries(roomData.players).map(([id, data]) => ({ id, ...data }))
+      console.log('Setting players to:', playersList)
       setPlayers(playersList)
-      console.log('Tutorial players updated:', playersList)
     } else {
+      console.log('No roomData.players, setting empty array')
       setPlayers([])
     }
   }, [roomData?.players])
