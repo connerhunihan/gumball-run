@@ -23,7 +23,7 @@ const TUTORIAL_GUMBALL_MACHINE = {
 
 const TutorialLobby = ({ players, onStart, isReady, playerId }) => {
   return (
-    <div className="fixed top-1/2 right-4 transform -translate-y-1/2 bg-white border-4 border-black rounded-2xl p-6 w-72 h-auto max-h-[80vh] overflow-y-auto z-30">
+    <div className="fixed top-1/2 right-4 transform -translate-y-1/2 border-4 border-black rounded-2xl p-6 w-72 h-auto max-h-[80vh] overflow-y-auto z-30">
       <h2 className="text-2xl font-bold text-center mb-4">Players</h2>
       <div className="space-y-2 mb-6">
         {players.map((p) => (
@@ -89,11 +89,10 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
     case 2:
       return (
         <TutorialLayout 
-          title="Here’s how it works" 
+          title="Here's how it works" 
           description="You get points based on how close your guess is."
         >
           <div className="flex flex-row items-center justify-center gap-16">
-            <StarScore score={testGuessResult?.score || 0} />
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
                 <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[429px] h-[328px]">
@@ -109,6 +108,7 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
                 </div>
               )}
             </div>
+            <StarScore score={testGuessResult?.score || 0} />
           </div>
         </TutorialLayout>
       );
@@ -139,17 +139,19 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
     case 4:
       // Simplified for estimator-only
       return (
-        <>
-          <h1 className="text-5xl font-bold mb-4 text-center">How to Guess</h1>
-          <p className="text-xl mb-8 text-center max-w-2xl mx-auto">
-            You will have an estimate to help guide your guess, as well as a confidence tag for that estimate.
-          </p>
+        <TutorialLayout 
+          title="How to Guess" 
+          description="An estimate and confidence score are provided to help you with your guess."
+        >
           <div className="flex justify-center items-center gap-8">
-            <div className="bg-yellow-400 p-4 rounded-lg border-2 border-black flex flex-col items-center justify-center text-center w-[400px] h-[300px]">
-              <EstimateDisplay actualCount={250} onSubmitGuess={() => {}} isSubmitting={true} />
+            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[429px] h-[328px] relative">
+              <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={380} height={280} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <EstimateDisplay confidence="Medium" guess="105" />
+              </div>
             </div>
           </div>
-        </>
+        </TutorialLayout>
       )
     case 5:
       // This step is now the final step
@@ -244,7 +246,7 @@ const Tutorial = () => {
         isReady={step === totalSteps}
         playerId={playerId}
       />
-      <div className="max-w-4xl w-full">
+      <div className="max-w-4xl w-full mr-80">
         <TutorialStep 
           step={step} 
           players={players} 
@@ -256,14 +258,18 @@ const Tutorial = () => {
         />
       </div>
 
-      {step < totalSteps ? (
-        <button
-          onClick={handleNext}
-          className="mt-8 bg-[#FFC700] border-2 border-black rounded-lg px-8 py-3 text-xl font-bold"
-        >
-          Next
-        </button>
-      ) : (
+      {step < totalSteps && (
+        <div className="fixed bottom-8 right-80 z-40">
+          <button
+            onClick={handleNext}
+            className="bg-[#FFC700] border-2 border-black rounded-lg px-8 py-3 text-xl font-bold"
+          >
+            Next
+          </button>
+        </div>
+      )}
+      
+      {step === totalSteps && (
         <p className="mt-8 text-xl font-bold text-center">Click "Start Game" in the panel to begin!</p>
       )}
     </div>
