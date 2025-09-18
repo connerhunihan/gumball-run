@@ -137,7 +137,7 @@ export default function StartScreen() {
               Gumball Run is a competition to estimate the count of gumballs in a jar
             </h1>
             <button
-              onClick={handleCreateRoom}
+              onClick={sessionStorage.getItem('joinRoomId') ? handlePlay : handleCreateRoom}
               disabled={isCreatingRoom}
               className="bg-[#00f22a] border-4 border-black rounded-2xl px-16 py-8 text-black font-black text-6xl transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ 

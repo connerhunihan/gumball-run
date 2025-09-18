@@ -9,7 +9,7 @@ import { subscribeToRoom, markPlayerStarted, startGame } from '../lib/room.js'
 import { scoreForGuess, generateGumballs } from '../lib/gumballs.js'
 import EstimateDisplay from './EstimateDisplay.jsx' // Assuming this is used somewhere
 
-const TutorialLobby = ({ players, onStart, isReady, playerId, hasStarted }) => {
+const TutorialLobby = ({ players, onStart, isReady, playerId, hasStarted, roomId }) => {
   console.log('TutorialLobby rendering with players:', players)
   console.log('TutorialLobby players length:', players.length)
   console.log('TutorialLobby players details:', players.map(p => ({ id: p.id, name: p.name })))
@@ -18,7 +18,12 @@ const TutorialLobby = ({ players, onStart, isReady, playerId, hasStarted }) => {
   
   return (
     <div className="fixed top-1/2 right-4 transform -translate-y-1/2 border-4 border-black rounded-2xl p-6 w-72 h-auto max-h-[80vh] overflow-y-auto z-30">
-      <h2 className="text-2xl font-bold text-center mb-4">Players</h2>
+      <h2 className="text-2xl font-bold text-center mb-2">Players</h2>
+      {roomId && (
+        <div className="text-sm text-gray-600 text-center mb-4">
+          Room: {roomId}
+        </div>
+      )}
       <div className="space-y-2 mb-6">
         {players.map((p) => (
           <div 
@@ -244,6 +249,7 @@ const Tutorial = () => {
         isReady={step === totalSteps}
         playerId={playerId}
         hasStarted={hasStarted}
+        roomId={roomId}
       />
       <div className="max-w-4xl w-full mr-80">
         <TutorialStep 
