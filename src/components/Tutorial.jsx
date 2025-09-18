@@ -93,6 +93,7 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
           description="You get points based on how close your guess is."
         >
           <div className="flex flex-row items-center justify-center gap-16">
+            <StarScore score={testGuessResult?.score || 0} />
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
                 <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-2 w-[429px] h-[328px] overflow-hidden">
@@ -108,7 +109,6 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
                 </div>
               )}
             </div>
-            <StarScore score={testGuessResult?.score || 0} />
           </div>
         </TutorialLayout>
       );
