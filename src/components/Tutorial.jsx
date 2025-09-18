@@ -144,9 +144,9 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
           description="An estimate and confidence score are provided to help you with your guess."
         >
           <div className="flex justify-center items-center gap-8">
-            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[429px] h-[328px] relative">
-              <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={380} height={280} />
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-2 w-[429px] h-[328px] relative overflow-hidden">
+              <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={425} height={320} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <EstimateDisplay confidence="Medium" guess="105" />
               </div>
             </div>
