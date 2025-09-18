@@ -13,36 +13,34 @@ export default function EstimateComponent({ onSubmitGuess, isSubmitting, actualC
   const estimate = useMemo(() => {
     if (!actualCount) return 0
     
-    // Generate confidence level with weighted probability (more Medium/High than Low)
+    // Generate estimate with random error (weighted toward more accurate estimates)
     const random = Math.random()
-    let randomLevel
-    if (random < 0.2) {
-      randomLevel = 'Low' // 20% chance
-    } else if (random < 0.7) {
-      randomLevel = 'Medium' // 50% chance
-    } else {
-      randomLevel = 'High' // 30% chance
-    }
-    setConfidence(randomLevel)
-
-    // Generate estimate based on confidence level with correct accuracy thresholds
     let errorMargin
-    switch (randomLevel) {
-      case 'High':
-        errorMargin = 0.03 // within 3%
-        break
-      case 'Medium':
-        errorMargin = 0.08 // within 8%
-        break
-      case 'Low':
-        errorMargin = 0.15 // within 15%
-        break
-      default:
-        errorMargin = 0.08
+    
+    // Weighted probability for error margins (more accurate estimates are more common)
+    if (random < 0.3) {
+      errorMargin = 0.15 // 30% chance - Low accuracy
+    } else if (random < 0.8) {
+      errorMargin = 0.08 // 50% chance - Medium accuracy  
+    } else {
+      errorMargin = 0.03 // 20% chance - High accuracy
     }
 
     const randomError = (Math.random() - 0.5) * 2 * errorMargin
-    return Math.max(1, Math.round(actualCount * (1 + randomError)))
+    const estimateValue = Math.max(1, Math.round(actualCount * (1 + randomError)))
+    
+    // Calculate actual accuracy and assign appropriate confidence tag
+    const actualAccuracy = 1 - Math.abs(estimateValue - actualCount) / actualCount
+    
+    if (actualAccuracy >= 0.97) { // Within 3%
+      setConfidence('High')
+    } else if (actualAccuracy >= 0.92) { // Within 8%
+      setConfidence('Medium')
+    } else { // Less than 92% accurate
+      setConfidence('Low')
+    }
+    
+    return estimateValue
   }, [actualCount])
 
   const handleSubmit = () => {
