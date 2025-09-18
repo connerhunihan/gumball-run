@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import GumballImage from './GumballImage.jsx'
 import ScoreCounter from './ScoreCounter.jsx'
@@ -6,20 +6,8 @@ import Leaderboard from '../routes/Leaderboard.jsx'
 import EstimateComponent from './EstimateComponent.jsx'
 import StarScore from './StarScore.jsx'
 import { subscribeToRoom, markPlayerStarted, startGame } from '../lib/room.js'
-import { scoreForGuess } from '../lib/gumballs.js'
+import { scoreForGuess, generateGumballs } from '../lib/gumballs.js'
 import EstimateDisplay from './EstimateDisplay.jsx' // Assuming this is used somewhere
-
-
-const TUTORIAL_GUMBALL_MACHINE = {
-  width: 400,
-  height: 300,
-  balls: Array.from({ length: 115 }, () => ({
-    x: Math.random() * 380 + 10,
-    y: Math.random() * 280 + 10,
-    c: `hsl(${Math.random() * 360}, 80%, 60%)`,
-  })),
-  count: 115,
-}
 
 const TutorialLobby = ({ players, onStart, isReady, playerId }) => {
   return (
@@ -61,7 +49,7 @@ const TutorialLayout = ({ title, description, children }) => (
   </div>
 );
 
-function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handleTestGuess, testGuessResult }) {
+function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handleTestGuess, testGuessResult, tutorialGumballMachine }) {
   switch (step) {
     case 1:
       return (
@@ -71,7 +59,7 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
         >
           <div className="flex flex-col items-center gap-4">
             <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-2 w-[429px] h-[328px] overflow-hidden">
-              <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={425} height={320} />
+              <GumballImage machine={tutorialGumballMachine} width={425} height={320} />
             </div>
             <div className="bg-white border-4 border-black p-4 w-[429px] h-[80px] rounded-2xl">
               <input
@@ -97,7 +85,7 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
                 <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-2 w-[429px] h-[328px] overflow-hidden">
-                  <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={425} height={320} />
+                  <GumballImage machine={tutorialGumballMachine} width={425} height={320} />
                 </div>
               </div>
               <div className="bg-gray-200 border-4 border-black p-4 w-[429px] h-[80px] rounded-2xl flex items-center justify-center">
@@ -105,7 +93,7 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
               </div>
               {testGuessResult && (
                 <div className="bg-white p-2 border-2 border-black rounded-lg">
-                  +{testGuessResult.score} points! Actual was {TUTORIAL_GUMBALL_MACHINE.count}.
+                  +{testGuessResult.score} points! Actual was {tutorialGumballMachine.count}.
                 </div>
               )}
             </div>
@@ -145,7 +133,7 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
         >
           <div className="flex justify-center items-center gap-8">
             <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-2 w-[429px] h-[328px] relative overflow-hidden">
-              <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={425} height={320} />
+              <GumballImage machine={tutorialGumballMachine} width={425} height={320} />
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <EstimateDisplay confidence="Medium" guess="105" />
               </div>
@@ -189,6 +177,9 @@ const Tutorial = () => {
 
   const totalSteps = 5 // Updated total steps
 
+  // Memoize the gumball machine so it only generates once
+  const tutorialGumballMachine = useMemo(() => generateGumballs(), [])
+
   useEffect(() => {
     if (roomId) {
       const unsubscribe = subscribeToRoom(roomId, (data) => {
@@ -216,7 +207,7 @@ const Tutorial = () => {
 
   const handleTestGuess = () => {
     if (testGuess.trim()) {
-      const score = scoreForGuess(parseInt(testGuess), TUTORIAL_GUMBALL_MACHINE.count)
+      const score = scoreForGuess(parseInt(testGuess), tutorialGumballMachine.count)
       setTestGuessResult({ score, guess: testGuess })
     }
   }
@@ -255,6 +246,7 @@ const Tutorial = () => {
           setTestGuess={setTestGuess}
           handleTestGuess={handleTestGuess}
           testGuessResult={testGuessResult}
+          tutorialGumballMachine={tutorialGumballMachine}
         />
       </div>
 
