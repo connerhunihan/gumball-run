@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import GumballImage from './GumballImage.jsx'
 import TimerDisplay from './TimerDisplay.jsx'
@@ -18,6 +18,7 @@ export default function IndividualCompetition() {
   const [lastGuessResult, setLastGuessResult] = useState(null)
   const [showGuessResult, setShowGuessResult] = useState(false)
   const [gumballCount, setGumballCount] = useState(50)
+  const inputRef = useRef(null)
   const [imageKey, setImageKey] = useState(0)
   const [gameStarted, setGameStarted] = useState(false)
   const [timeLeft, setTimeLeft] = useState(180)
@@ -101,6 +102,25 @@ export default function IndividualCompetition() {
 
     return () => clearInterval(timer)
   }, [gameStarted])
+
+  // Auto-focus input field when game starts and after each guess
+  useEffect(() => {
+    if (gameStarted && inputRef.current && !isSubmitting) {
+      inputRef.current.focus()
+    }
+  }, [gameStarted, isSubmitting])
+
+  // Focus input after guess result is shown and hidden
+  useEffect(() => {
+    if (showGuessResult) {
+      const timer = setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus()
+        }
+      }, 2100) // Slightly after the 2-second display time
+      return () => clearTimeout(timer)
+    }
+  }, [showGuessResult])
 
   const handleSubmitGuess = async (guess, confidence) => {
     if (guess.trim() && !isSubmitting) {
@@ -188,6 +208,7 @@ export default function IndividualCompetition() {
                   }}
                 >
                   <input
+                    ref={inputRef}
                     type="number"
                     placeholder="enter a number"
                     value={currentGuess}
