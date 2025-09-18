@@ -156,6 +156,7 @@ const Tutorial = () => {
   const location = useLocation()
   const { roomId, playerId } = location.state || {}
   const [roomData, setRoomData] = useState(null)
+  const [players, setPlayers] = useState([])
   const [testGuess, setTestGuess] = useState('')
   const [testGuessResult, setTestGuessResult] = useState(null)
   const [hasStarted, setHasStarted] = useState(false)
@@ -207,14 +208,22 @@ const Tutorial = () => {
     }
   }
 
-  const players = roomData ? Object.entries(roomData.players || {}).map(([id, data]) => ({ id, ...data })) : []
-  
-  // Debug logging for players and room data
+  // Update players when roomData changes
   useEffect(() => {
-    console.log('Tutorial players updated:', players)
+    if (roomData?.players) {
+      const playersList = Object.entries(roomData.players).map(([id, data]) => ({ id, ...data }))
+      setPlayers(playersList)
+      console.log('Tutorial players updated:', playersList)
+    } else {
+      setPlayers([])
+    }
+  }, [roomData?.players])
+
+  // Debug logging for room data
+  useEffect(() => {
     console.log('Tutorial roomData:', roomData)
     console.log('Tutorial roomData.players:', roomData?.players)
-  }, [players, roomData])
+  }, [roomData])
 
   // This effect will listen for changes and navigate when the game starts
   useEffect(() => {
