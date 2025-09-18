@@ -20,7 +20,7 @@ export const generateRoomId = () => {
 export const createRoom = async (roomId) => {
   const roomRef = ref(database, `rooms/${roomId}`)
   const now = Date.now()
-  const gameEndTime = now + (2 * 60 * 1000) // 2 minutes from now
+  const gameEndTime = now + (105 * 1000) // 1.75 minutes from now
   
   const roomData = {
     createdAt: now,
@@ -257,7 +257,7 @@ export const startGame = async (roomId) => {
   }
   
   // Set new game end time when game actually starts
-  const newGameEndTime = Date.now() + (2 * 60 * 1000) // 2 minutes from now
+  const newGameEndTime = Date.now() + (105 * 1000) // 1.75 minutes from now
   const gameEndTimeRef = ref(database, `rooms/${roomId}/gameEndTime`)
   await set(gameEndTimeRef, newGameEndTime)
   

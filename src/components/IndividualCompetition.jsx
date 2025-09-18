@@ -21,7 +21,7 @@ export default function IndividualCompetition() {
   const inputRef = useRef(null)
   const [imageKey, setImageKey] = useState(0)
   const [gameStarted, setGameStarted] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(180)
+  const [timeLeft, setTimeLeft] = useState(105)
   const [playerStats, setPlayerStats] = useState({ guessCount: 0, totalAccuracy: 0, score: 0 })
   const [leaderboard, setLeaderboard] = useState([])
 
@@ -256,9 +256,9 @@ export default function IndividualCompetition() {
           )}
         </div>
 
-        <div className="w-[400px] bg-white border-4 border-black rounded-2xl p-4">
+        <div className="w-[400px] bg-white border-4 border-black rounded-2xl p-4 max-h-[400px] flex flex-col">
           <h2 className="text-2xl font-bold text-center mb-4">Leaderboard</h2>
-          <div className="space-y-2">
+          <div className="space-y-2 overflow-y-auto flex-1">
             {leaderboard.map((player, index) => (
               <div key={player.id || index} className="flex items-center justify-between text-sm">
                 <span className="text-left">{index + 1}. {player.name}</span>
