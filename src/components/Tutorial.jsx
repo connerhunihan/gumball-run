@@ -70,8 +70,8 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
           description="The goal is to guess how many gumballs are inside this yellow box."
         >
           <div className="flex flex-col items-center gap-4">
-            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[429px] h-[328px]">
-              <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={380} height={280} />
+            <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-2 w-[429px] h-[328px] overflow-hidden">
+              <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={425} height={320} />
             </div>
             <div className="bg-white border-4 border-black p-4 w-[429px] h-[80px] rounded-2xl">
               <input
@@ -95,8 +95,8 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
           <div className="flex flex-row items-center justify-center gap-16">
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
-                <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-8 w-[429px] h-[328px]">
-                  <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={380} height={280} />
+                <div className="bg-[#ffff00] border-4 border-black rounded-2xl p-2 w-[429px] h-[328px] overflow-hidden">
+                  <GumballImage machine={TUTORIAL_GUMBALL_MACHINE} width={425} height={320} />
                 </div>
               </div>
               <div className="bg-gray-200 border-4 border-black p-4 w-[429px] h-[80px] rounded-2xl flex items-center justify-center">
