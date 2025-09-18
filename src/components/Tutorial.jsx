@@ -9,7 +9,11 @@ import { subscribeToRoom, markPlayerStarted, startGame } from '../lib/room.js'
 import { scoreForGuess, generateGumballs } from '../lib/gumballs.js'
 import EstimateDisplay from './EstimateDisplay.jsx' // Assuming this is used somewhere
 
-const TutorialLobby = ({ players, onStart, isReady, playerId }) => {
+const TutorialLobby = ({ players, onStart, isReady, playerId, hasStarted }) => {
+  console.log('TutorialLobby rendering with players:', players)
+  const startedCount = players.filter(p => p.hasStarted).length
+  const totalCount = players.length
+  
   return (
     <div className="fixed top-1/2 right-4 transform -translate-y-1/2 border-4 border-black rounded-2xl p-6 w-72 h-auto max-h-[80vh] overflow-y-auto z-30">
       <h2 className="text-2xl font-bold text-center mb-4">Players</h2>
@@ -28,7 +32,7 @@ const TutorialLobby = ({ players, onStart, isReady, playerId }) => {
         disabled={!isReady}
         className="w-full bg-[#FFC700] border-2 border-black rounded-lg py-3 text-xl font-bold transition-all duration-200 disabled:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-yellow-500"
       >
-        Start Game
+        {hasStarted ? `${startedCount} of ${totalCount} players joined` : 'Start Game'}
       </button>
     </div>
   )
@@ -125,7 +129,7 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
         </TutorialLayout>
       );
     case 4:
-      // Simplified for estimator-only
+      // Final step - estimate and confidence explanation
       return (
         <TutorialLayout 
           title="How to Guess" 
@@ -141,26 +145,6 @@ function TutorialStep({ step, players, playerId, testGuess, setTestGuess, handle
           </div>
         </TutorialLayout>
       )
-    case 5:
-      // This step is now the final step
-      return (
-        <>
-          <h1 className="text-5xl font-bold mb-4 text-center">Ready to Play?</h1>
-          <p className="text-xl mb-8 text-center">
-            The game will begin when all players are ready.
-          </p>
-          <div className="bg-yellow-400 p-4 rounded-lg border-2 border-black w-[400px] text-center">
-            <h2 className="text-2xl font-bold mb-2">Players Ready</h2>
-            <ul>
-              {players.map((p) => (
-                <li key={p.id} className={p.hasStarted ? 'text-green-600' : ''}>
-                  {p.name} {p.id === playerId && '(You)'}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
-      )
     default:
       return <div>Unknown step</div>
   }
@@ -174,8 +158,9 @@ const Tutorial = () => {
   const [roomData, setRoomData] = useState(null)
   const [testGuess, setTestGuess] = useState('')
   const [testGuessResult, setTestGuessResult] = useState(null)
+  const [hasStarted, setHasStarted] = useState(false)
 
-  const totalSteps = 5 // Updated total steps
+  const totalSteps = 4 // Updated total steps - estimate screen is now the final step
 
   // Memoize the gumball machine so it only generates once
   const tutorialGumballMachine = useMemo(() => generateGumballs(), [])
@@ -183,6 +168,7 @@ const Tutorial = () => {
   useEffect(() => {
     if (roomId) {
       const unsubscribe = subscribeToRoom(roomId, (data) => {
+        console.log('Tutorial room data updated:', data)
         setRoomData(data)
         if (data?.state?.gameStarted) {
           navigate(`/individual-competition`, { state: { roomId, playerId } })
@@ -214,6 +200,7 @@ const Tutorial = () => {
 
   const handleStartGame = async () => {
     if (step === totalSteps) {
+      setHasStarted(true)
       await markPlayerStarted(roomId, playerId)
       // Attempt to start the game. The server-side logic will check if all players are ready.
       startGame(roomId)
@@ -221,6 +208,11 @@ const Tutorial = () => {
   }
 
   const players = roomData ? Object.entries(roomData.players || {}).map(([id, data]) => ({ id, ...data })) : []
+  
+  // Debug logging for players
+  useEffect(() => {
+    console.log('Tutorial players updated:', players)
+  }, [players])
 
   // This effect will listen for changes and navigate when the game starts
   useEffect(() => {
@@ -232,10 +224,12 @@ const Tutorial = () => {
   return (
     <div className="min-h-screen bg-[#8eebff] flex flex-col items-center justify-center p-8 relative">
       <TutorialLobby 
+        key={`lobby-${players.length}-${players.map(p => p.id).join(',')}`}
         players={players}
         onStart={handleStartGame}
         isReady={step === totalSteps}
         playerId={playerId}
+        hasStarted={hasStarted}
       />
       <div className="max-w-4xl w-full mr-80">
         <TutorialStep 
@@ -259,10 +253,6 @@ const Tutorial = () => {
             Next
           </button>
         </div>
-      )}
-      
-      {step === totalSteps && (
-        <p className="mt-8 text-xl font-bold text-center">Click "Start Game" in the panel to begin!</p>
       )}
     </div>
   )
